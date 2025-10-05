@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3ae2cef5ff0dbcd54481d3f8e9caf32e",
+    "content-hash": "4807778e2b64ff4de80041e98d7628f5",
     "packages": [
         {
             "name": "fightbulc/moment",
@@ -202,16 +202,16 @@
         },
         {
             "name": "smarty/smarty",
-            "version": "v5.4.0",
+            "version": "v5.6.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/smarty-php/smarty.git",
-                "reference": "fd90f7eac969d998736edbf12dadf04c64471b0a"
+                "reference": "1fc41e385da8a27a87bec5914392ab662a7bb8ec"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/smarty-php/smarty/zipball/fd90f7eac969d998736edbf12dadf04c64471b0a",
-                "reference": "fd90f7eac969d998736edbf12dadf04c64471b0a",
+                "url": "https://api.github.com/repos/smarty-php/smarty/zipball/1fc41e385da8a27a87bec5914392ab662a7bb8ec",
+                "reference": "1fc41e385da8a27a87bec5914392ab662a7bb8ec",
                 "shasum": ""
             },
             "require": {
@@ -266,9 +266,15 @@
             "support": {
                 "forum": "https://github.com/smarty-php/smarty/discussions",
                 "issues": "https://github.com/smarty-php/smarty/issues",
-                "source": "https://github.com/smarty-php/smarty/tree/v5.4.0"
+                "source": "https://github.com/smarty-php/smarty/tree/v5.6.0"
             },
-            "time": "2024-08-14T20:00:44+00:00"
+            "funding": [
+                {
+                    "url": "https://github.com/wisskid",
+                    "type": "github"
+                }
+            ],
+            "time": "2025-10-03T21:22:25+00:00"
         },
         {
             "name": "symfony/polyfill-ctype",

@@ -100,8 +100,7 @@ class Tools
      */
     public static function atkErrorHandler($errorTypeNum, $errstr, $errfile, $errline): void
     {
-        // probably suppressed error using the @ operator, simply ignore
-        // Todo: Disable this check in dev; We need to fix all the errors!
+        // probably suppressed error using the @ operator
         if (error_reporting() == 0) {
             return;
         }
@@ -118,49 +117,40 @@ class Tools
             E_USER_ERROR => "User Error",
             E_USER_WARNING => "User Warning",
             E_USER_NOTICE => "User Notice",
-            E_STRICT => "Strict Notice",
             'EXCEPTION' => 'Uncaught exception',
         ];
 
-        // E_RECOVERABLE_ERROR is available since 5.2.0
         if (defined('E_RECOVERABLE_ERROR')) {
             $errorTypes[E_RECOVERABLE_ERROR] = 'Recoverable Error';
         }
 
-        // E_DEPRECATED / E_USER_DEPRECATED are available since 5.3.0
         if (defined('E_DEPRECATED')) {
             $errorTypes[E_DEPRECATED] = 'Deprecated';
             $errorTypes[E_USER_DEPRECATED] = 'User Deprecated';
         }
 
-        // Translate the given errorTypeNum into a code
-        $errorCode = $errorTypes[$errorTypeNum];
+        $errorCode = $errorTypes[$errorTypeNum] ?? "Unknown Error";
 
-        if ($errorTypeNum == E_STRICT) {
-            // ignore strict notices for now, there is too much stuff that needs to be fixed
-            return;
-        }
         if ($errorTypeNum == E_NOTICE) {
-            // Just show notices
             self::atkdebug("[$errorCode] $errstr in $errfile (line $errline)", self::DEBUG_NOTICE);
             return;
         }
+
         if (defined('E_DEPRECATED') && in_array($errorTypeNum, [E_DEPRECATED, E_USER_DEPRECATED])) {
-            // Just show deprecation warnings in the debug log, but don't influence the program flow
             self::atkdebug("[$errorCode] $errstr in $errfile (line $errline)", self::DEBUG_NOTICE);
             return;
         }
+
         if (in_array($errorTypeNum, [E_WARNING, E_USER_WARNING])) {
-            // This is something we should pay attention to, but we don't need to die.
             self::atkerror("[$errorCode] $errstr in $errfile (line $errline)");
             return;
         }
+
         header("HTTP/1.0 500 Internal Server Error");
         self::atkerror("[$errorCode] $errstr in $errfile (line $errline)", ($errorTypeNum == 'EXCEPTION'));
-        // we must die. we can't even output anything anymore.
-        // we can do something with the info though.
         self::atkhalt($errstr, 'critical');
     }
+
 
     /**
      * Default ATK exception handler, handles uncaught exceptions and calls atkHalt.
@@ -553,9 +543,11 @@ class Tools
      *
      * @return array The result of the merge between $array1 and $array2
      */
-    public static function atk_array_merge(array $array1, array $array2 = null, array $_ = null)
+    public static function atk_array_merge(array $array1, array ...$arrays): array
     {
-        return array_unique(call_user_func_array('array_merge', func_get_args()), SORT_REGULAR);
+        $allArrays = array_filter([$array1, ...$arrays], 'is_array');
+
+        return array_unique(array_merge(...$allArrays), SORT_REGULAR);
     }
 
     /**
