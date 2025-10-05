@@ -46,20 +46,11 @@ class Atk
 
         $this->environment = $environment;
 
-        $isBaseDirALoader = 'Dotenv\Loader' == (is_object($basedir) and get_class($basedir));
-
-        if (file_exists($basedir . ".env")) { //If an env file is provided in the basedir
-            $loader = $basedir;
-        } else {
-            die ("cannot locate .env file");
+        if (!file_exists($basedir . '/.env')) {
+            die("Cannot locate .env file in $basedir");
         }
-
-        //If a loader has been provided
-        if ($loader) {
-            //load .env variables
-            $dotEnv = Dotenv::create($loader);
-            $dotEnv->load();
-        }
+        $dotenv = Dotenv::createImmutable($basedir);
+        $dotenv->load();
 
         require_once 'adodb-time.php';
 
