@@ -3557,7 +3557,7 @@ class Node
         return $handler->adminPage($actions);
     }
 
-    function addPage(AddHandler $handler, array|null $record = null): string
+    function addPage(ActionHandler $handler, array|null $record = null): string
     {
         $this->setAttributesFlags($record, 'add');
         return $handler->addPage($record);
