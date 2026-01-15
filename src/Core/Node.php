@@ -1843,7 +1843,7 @@ class Node
      *
      * @return string The name of the currently visible tab.
      */
-    public function getActiveTab(): string
+    public function getActiveTab(): ?string
     {
         global $ATK_VARS;
         $tablist = $this->getTabs($ATK_VARS['atkaction']);
@@ -3557,7 +3557,7 @@ class Node
         return $handler->adminPage($actions);
     }
 
-    function addPage(ActionHandler $handler, array|null $record = null): string
+    function addPage(AddHandler|AdminHandler $handler, array|null $record = null): string
     {
         $this->setAttributesFlags($record, 'add');
         return $handler->addPage($record);
