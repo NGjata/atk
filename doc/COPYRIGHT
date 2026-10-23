@@ -1,0 +1,78 @@
+The ATK Framework is Copyright (c)2000-2016 by the original authors, including
+all related material (PHP, HTML, CSS, images, ...) 
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License v3 as published
+by the Free Software Foundation. See the License page in the ATK project
+wiki for more information:
+https://github.com/atkphpframework/atk/wiki/License
+
+You should have received a copy of the GNU Lesser General Public License v3
+along with this program (see file doc/LICENSE). The license can also be
+viewed at http://www.gnu.org/licenses/lgpl.html
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
+License v3 for more information.
+
+The ATK Framework is a trademark of ibuildings.nl. See the ATK Framework
+Trademark and Logo Policy in the ATK Framework project wiki for more
+information:
+https://github.com/atkphpframework/atk/wiki/Trademark-and-Logo-Policy
+
+The ATK Framework includes works under other copyright notices and distributed
+according to the terms of the GNU Lesser General Public License or a
+compatible license, including:
+        
+    DHTML Calendar Widget by Mihai Bazon
+        http://dynarch.com/mishoo/calendar.epl
+        Copyright (c) 2002-2004 Mihai
+        License: LGPL
+
+    PHPLIB database abstraction classes (modified)
+        http://phplib.netuse.de
+        Copyright (c) 1998,1999 SH Online Dienst GmbH
+        License: LGPL
+
+    ADOdb Date Library for date support prior to 1970
+        http://phplens.com/phpeverywhere/adodb_date_library
+        Copyright (c) 2003 John Lim
+        License: BSD, LGPL
+
+    CKeditor for wysiwyg editing
+        http://www.ckeditor.com/
+        Copyright (c) 2003 - 2016 CKSource Sp. z o.o. sp.k.
+        License: GPL, LGPL, MPL
+
+    Prototype JavaScript Framework for Ajax support
+        http://prototypejs.org/
+        Copyright (c) 2005 Sam Stephenson 
+        License: MIT-style
+
+    Script.aculo.us JavaScript Library for Ajax/Effects support
+        http://script.aculo.us/
+        Copyright (c) 2005 Thomas Fuchs
+        License: MIT-Style
+
+    PHP-JSON library for JSON (de-)serialization
+         http://mike.teczno.com/json.html
+         Copyright (c) 2005 Michal Migurski
+         License: BSD license
+
+    prototype window Javascript Library for windows support
+        http://prototype-window.xilinus.com/
+        Copyright (c) 2006 S�bastien Gruhier
+        License: MIT-style
+
+    PhpCaptcha Class by Edward Eliot
+        http://www.ejeliot.com/
+        Copyright (c) 2005 Edward Eliot and
+        License: BSD
+
+    json.org JSON JavaScript library
+        http://json.org/json.js
+        Copyright 
+        License: Public domain
+
+###
