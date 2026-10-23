@@ -45,7 +45,8 @@ class CsvRecordList extends CustomRecordList
         $suppressList = '',
         $outputparams = [],
         $titlerow = true,
-        $decode = false
+        $decode = false,
+        ...$unused // keeps the signature compatible with CustomRecordList::render() under PHP 8
     ) {
         parent::render($node, $recordset, '', '"', '"', "\n", '1', $compression, $suppressList, $outputparams, 'csv', $titlerow, $decode, ',', null);
     }

@@ -680,7 +680,7 @@ class ImportHandler extends ActionHandler
             return explode($delimiterChar, $line);
         }
 
-        if ($line{0} == $delimiterChar) {
+        if ($line[0] == $delimiterChar) {
             $line = $enclosureChar.$enclosureChar.$line;
         }
 

@@ -585,7 +585,7 @@ class TreeNode extends Node
      * @param array $record The record to copy
      * @param string $mode The mode we're in (usually "copy")
      */
-    public function copyDb($record, $mode = 'copy')
+    public function copyDb(&$record, $mode = 'copy')
     {
         $oldparent = $record[$this->m_primaryKey[0]];
 
@@ -638,7 +638,7 @@ class TreeNode extends Node
      *
      * @param string $selector Selector
      */
-    public function deleteDb($selector)
+    public function deleteDb($selector, $exectrigger = true, $failwhenempty = false)
     {
         Tools::atkdebug('Retrieve record');
         $recordset = $this->select($selector)->mode('delete')->getAllRows();

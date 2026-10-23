@@ -595,7 +595,7 @@ class SecurityManager
         $user = null;
         $sm = SessionManager::getInstance();
         $session_auth = is_object($sm) ? $sm->getValue('authentication', 'globals') : [];
-        if (Config::getGlobal('authentication_session') && $session_auth['authenticated'] == 1 && !empty($session_auth['user'])
+        if (Config::getGlobal('authentication_session') && ($session_auth['authenticated'] ?? 0) == 1 && !empty($session_auth['user'])
         ) {
             $user = $session_auth['user'];
             if (!isset($user['access_level']) || empty($user['access_level'])) {

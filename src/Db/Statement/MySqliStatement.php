@@ -218,6 +218,10 @@ class MySqliStatement extends Statement
      */
     protected function _reset()
     {
+        // Under PHP 8 calling methods on a closed mysqli_stmt throws instead of warning, so skip once closed
+        if ($this->m_stmt === null) {
+            return;
+        }
         @$this->m_stmt->free_result();
         @$this->m_stmt->reset();
     }
@@ -228,7 +232,11 @@ class MySqliStatement extends Statement
      */
     public function _close()
     {
+        if ($this->m_stmt === null) {
+            return;
+        }
         @$this->m_stmt->close();
+        $this->m_stmt = null;
     }
 
     /**

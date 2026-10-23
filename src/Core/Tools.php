@@ -103,6 +103,11 @@ class Tools
             return;
         }
 
+        // Respect error_reporting (PHP calls the handler for every level, including compile-time deprecations)
+        if (is_int($errtype) && !(error_reporting() & $errtype)) {
+            return;
+        }
+
         $errorType = [
             E_ERROR => "Error",
             E_WARNING => "Warning",
@@ -115,7 +120,7 @@ class Tools
             E_USER_ERROR => "User Error",
             E_USER_WARNING => "User Warning",
             E_USER_NOTICE => "User Notice",
-            E_STRICT => "Strict Notice",
+            2048 => "Strict Notice", // E_STRICT, deprecated as a constant in PHP 8.4,
             'EXCEPTION' => 'Uncaught exception',
         ];
 
@@ -130,10 +135,15 @@ class Tools
             $errorType[E_USER_DEPRECATED] = "User Deprecated";
         }
 
+        // PHP 8 promoted these from E_NOTICE to E_WARNING; ATK 9 relies on them heavily, so keep PHP 7.4's notice handling
+        if ($errtype === E_WARNING && preg_match('/^(Undefined (variable|array key|offset|index|property)|Trying to access array offset on|Attempt to read property)/', $errstr)) {
+            $errtype = E_NOTICE;
+        }
+
         // Translate the given errortype into a string
         $errortypestring = $errorType[$errtype];
 
-        if ($errtype == E_STRICT) {
+        if ($errtype == 2048) { // E_STRICT
             // ignore strict notices for now, there is too much stuff that needs to be fixed
             return;
         } else {
@@ -143,13 +153,14 @@ class Tools
 
                 return;
             } else {
-                if (defined('E_DEPRECATED') && ($errtype & (E_DEPRECATED | E_USER_DEPRECATED)) > 0) {
+                // $errtype is the string 'EXCEPTION' when called from atkExceptionHandler; PHP 8 throws on string & int
+                if (defined('E_DEPRECATED') && is_int($errtype) && ($errtype & (E_DEPRECATED | E_USER_DEPRECATED)) > 0) {
                     // Just show deprecation warnings in the debug log, but don't influence the program flow
                     self::atkdebug("[$errortypestring] $errstr in $errfile (line $errline)", self::DEBUG_NOTICE);
 
                     return;
                 } else {
-                    if (($errtype & (E_WARNING | E_USER_WARNING)) > 0) {
+                    if (is_int($errtype) && ($errtype & (E_WARNING | E_USER_WARNING)) > 0) {
                         // This is something we should pay attention to, but we don't need to die.
                         self::atkerror("[$errortypestring] $errstr in $errfile (line $errline)");
 
@@ -184,7 +195,8 @@ class Tools
     {
 
         $error = error_get_last();
-        if ($error) {
+        // error_get_last() also returns warnings/deprecations that were already handled; only fatal errors end up here unhandled
+        if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR, E_RECOVERABLE_ERROR], true)) {
             self::atkErrorHandler(E_ERROR, $error['message'], $error['file'], $error['line']);
         }
     }

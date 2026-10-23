@@ -38,6 +38,8 @@ class SmartyProvider
             $s_smarty->setCompileDir($tplcompiledir); // name of directory for compiled templates
             $s_smarty->setForceCompile(Config::getGlobal('tplforcecompile')); // force templates to compile every time
             $s_smarty->addPluginsDir([__DIR__.'/smarty-plugins']);
+            // Smarty 3 silently treated undefined template variables as null; keep that under Smarty 4
+            $s_smarty->muteUndefinedOrNullWarnings();
 
             Tools::atkdebug('Instantiated new Smarty');
         }

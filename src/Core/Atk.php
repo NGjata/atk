@@ -67,7 +67,8 @@ class Atk
         }
         if (Config::getGlobal('use_atkerrorhandler', true)) {
             set_error_handler('Sintattica\Atk\Core\Tools::atkErrorHandler');
-            error_reporting(E_ALL);
+            // PHP 8.x deprecations in this ATK 9 codebase are harmless; keep them out of the UI
+            error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
             set_exception_handler('Sintattica\Atk\Core\Tools::atkExceptionHandler');
             register_shutdown_function('Sintattica\Atk\Core\Tools::atkFatalHandler');
         }

@@ -253,7 +253,7 @@ class FileEditor extends Node
      * @param array $rec Array that contains the identifier of the record
      * @param string $mode The mode we're in
      */
-    public function validate(&$rec, $mode)
+    public function validate(&$rec, $mode, $ignoreList = [])
     {
         if (!ereg($this->m_filefilter, $rec['filename'])) {
             Tools::triggerError($rec, 'filename', 'filename_invalid');
@@ -282,7 +282,7 @@ class FileEditor extends Node
      *
      * @return bool The result of the file addition
      */
-    public function addDb($record)
+    public function addDb(&$record, $exectrigger = true, $mode = 'add', $excludelist = [])
     {
         $sessmngr = SessionManager::getInstance();
         $this->m_dir = $this->stripDir($sessmngr->stackVar('dirname'));
@@ -309,7 +309,7 @@ class FileEditor extends Node
      *
      * @return bool The result of the file update
      */
-    public function updateDb(&$record)
+    public function updateDb(&$record, $exectrigger = true, $excludes = '', $includes = '')
     {
         // The record that must be updated is indicated by 'atkorgkey'
         // (not by atkselector, since the primary key might have
@@ -352,7 +352,7 @@ class FileEditor extends Node
      *
      * @return bool The result of the file deletion
      */
-    public function deleteDb($selector)
+    public function deleteDb($selector, $exectrigger = true, $failwhenempty = false)
     {
         $sessmngr = SessionManager::getInstance();
         $this->m_dir = $this->stripDir($sessmngr->stackVar('dirname'));

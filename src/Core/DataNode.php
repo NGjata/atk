@@ -369,7 +369,7 @@ class DataNode extends Node
      *
      * @return bool false
      */
-    public function addDb()
+    public function addDb(&$record = null, $exectrigger = true, $mode = 'add', $excludelist = [])
     {
         return false;
     }
@@ -379,7 +379,7 @@ class DataNode extends Node
      *
      * @return bool false
      */
-    public function updateDb()
+    public function updateDb(&$record = null, $exectrigger = true, $excludes = '', $includes = '')
     {
         return false;
     }
@@ -389,7 +389,7 @@ class DataNode extends Node
      *
      * @return bool false
      */
-    public function deleteDb()
+    public function deleteDb($selector = null, $exectrigger = true, $failwhenempty = false)
     {
         return false;
     }
