@@ -2,7 +2,6 @@
 
 namespace Sintattica\Atk\Db\Statement;
 
-use mysqli_stmt;
 use Sintattica\Atk\Core\Tools;
 use Sintattica\Atk\Db\MySqliDb;
 use Sintattica\Atk\Utils\Debugger;
@@ -18,17 +17,32 @@ class MySqliStatement extends Statement
 {
     /**
      * MySQLi statement.
+     *
+     * @var mixed $m_stmt
      */
-    private mysqli_stmt $m_stmt;
-    private ?array $m_columnNames = null;
-    private ?array $m_values = null;
+    private $m_stmt;
+
+    /**
+     * Column names.
+     *
+     * @var array
+     */
+    private $m_columnNames = null;
+
+    /**
+     * Row value bindings.
+     *
+     * @var array
+     */
+    private $m_values = null;
+
     private $m_insertId;
 
     /**
      * Prepares the statement for execution.
      * @throws StatementException
      */
-    protected function _prepare(): void
+    protected function _prepare()
     {
         if ($this->getDb()->connect() !== Db::DB_SUCCESS) {
             throw new StatementException('Cannot connect to database.', StatementException::NO_DATABASE_CONNECTION);
@@ -36,30 +50,24 @@ class MySqliStatement extends Statement
 
         $query = $this->_getParsedQuery();
         $conn = $this->getDb()->link_id();
-        Tools::atkdebug("Prepare query: $query");
-        $stmt = mysqli_prepare($conn, $query);
+        Tools::atkdebug('Prepare query: '.$query);
+        $this->m_stmt = mysqli_prepare($conn, $query);
 
-        if (!$stmt && $conn->errno === 2006) {
+        if(!$this->m_stmt && $conn->errno === 2006) {
             // retry
-            Tools::atkdebug('DB has gone away, try to reconnect...');
+            Tools::atkdebug('DB has gone away, try to reconnect');
             $this->getDb()->disconnect();
             if ($this->getDb()->connect() !== Db::DB_SUCCESS) {
                 throw new StatementException('Cannot connect to database.', StatementException::NO_DATABASE_CONNECTION);
             }
             $conn = $this->getDb()->link_id();
-            Tools::atkdebug("Prepare query after reconnection: $query");
-            $stmt = mysqli_prepare($conn, $query);
+            Tools::atkdebug('Prepare query after reconnection: '.$query);
+            $this->m_stmt = mysqli_prepare($conn, $query);
         }
 
-        if ($stmt === false) {
-            throw new StatementException("Cannot prepare the statement (Query: $query).", StatementException::PREPARE_STATEMENT_ERROR);
+        if (!$this->m_stmt || $conn->errno) {
+            throw new StatementException("Cannot prepare statement (ERROR: {$conn->errno} - {$conn->error}).", StatementException::PREPARE_STATEMENT_ERROR);
         }
-
-        if ($conn->errno) {
-            throw new StatementException("Cannot prepare statement (ERROR: $conn->errno - $conn->error).", StatementException::PREPARE_STATEMENT_ERROR);
-        }
-
-        $this->m_stmt = $stmt;
     }
 
     /**
@@ -70,7 +78,7 @@ class MySqliStatement extends Statement
      * query to be executed again.
      * @throws StatementException
      */
-    public function rewind(): void
+    public function rewind()
     {
         if ($this->_getLatestParams() === null) {
             throw new StatementException('Statement has not been executed yet.', StatementException::STATEMENT_NOT_EXECUTED);
@@ -84,7 +92,7 @@ class MySqliStatement extends Statement
      *
      * @param array $params parameters
      */
-    private function _bindParams(array $params): void
+    private function _bindParams($params)
     {
         if (Tools::count($params) == 0) {
             return;
@@ -94,7 +102,7 @@ class MySqliStatement extends Statement
         $args = [];
         $args[] = str_repeat('s', Tools::count($this->_getBindPositions()));
         foreach ($this->_getBindPositions() as $param) {
-            Tools::atkdebug("Bind param $i: " . ($params[$param] === null ? 'NULL' : $params[$param]));
+            Tools::atkdebug("Bind param {$i}: ".($params[$param] === null ? 'NULL' : $params[$param]));
             $args[] = &$params[$param];
             ++$i;
         }
@@ -106,7 +114,7 @@ class MySqliStatement extends Statement
      * Store the column names from this statement's metadata.
      * @throws StatementException
      */
-    private function _storeColumnNames(): void
+    private function _storeColumnNames()
     {
         if ($this->m_columnNames !== null) {
             // already stored on previous execution
@@ -130,10 +138,11 @@ class MySqliStatement extends Statement
     }
 
     /**
-     * Bind result columns to values array, so we can read the result when fetching rows.
+     * Bind result columns to values array so we can read the result when
+     * fetching rows.
      * @throws StatementException
      */
-    private function _bindResult(): void
+    private function _bindResult()
     {
         $this->_storeColumnNames();
         if ($this->m_columnNames === null) {
@@ -160,10 +169,10 @@ class MySqliStatement extends Statement
      *
      * @throws StatementException
      */
-    protected function _execute(array $params): void
+    protected function _execute($params)
     {
         if (Config::getGlobal('debug') >= 0) {
-            Debugger::addQuery($this->_getParsedQuery());
+            Debugger::addQuery($this->_getParsedQuery(), false);
         }
 
         $this->_bindParams($params);
@@ -188,7 +197,7 @@ class MySqliStatement extends Statement
      *
      * @return array|false next row from the result set (false if no other rows exist)
      */
-    protected function _fetch(): false|array
+    protected function _fetch()
     {
         if (!$this->m_stmt->fetch()) {
             return false;
@@ -199,14 +208,20 @@ class MySqliStatement extends Statement
             $values[] = $value;
         }
 
-        return array_combine($this->m_columnNames, $values);
+        $row = array_combine($this->m_columnNames, $values);
+
+        return $row;
     }
 
     /**
      * Resets the statement so that it can be re-used again.
      */
-    protected function _reset(): void
+    protected function _reset()
     {
+        // Under PHP 8 calling methods on a closed mysqli_stmt throws instead of warning, so skip once closed
+        if ($this->m_stmt === null) {
+            return;
+        }
         @$this->m_stmt->free_result();
         @$this->m_stmt->reset();
     }
@@ -215,9 +230,13 @@ class MySqliStatement extends Statement
      * Frees up all resources for this statement. The statement cannot be
      * re-used anymore.
      */
-    public function _close(): void
+    public function _close()
     {
+        if ($this->m_stmt === null) {
+            return;
+        }
         @$this->m_stmt->close();
+        $this->m_stmt = null;
     }
 
     /**

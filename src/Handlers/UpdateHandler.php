@@ -3,7 +3,6 @@
 namespace Sintattica\Atk\Handlers;
 
 use Sintattica\Atk\Attributes\SubmitButtonAttribute;
-use Sintattica\Atk\Core\Node;
 use Sintattica\Atk\Session\SessionManager;
 use Sintattica\Atk\Core\Tools;
 use Sintattica\Atk\Session\SessionStore;
@@ -40,44 +39,40 @@ class UpdateHandler extends ActionHandler
         if (isset($this->m_partial) && $this->m_partial != '') {
             $this->partial($this->m_partial);
             return;
-        }
+        } else {
 
-        // search for a submit button clicked
-        $record = $this->m_postvars;
-        foreach ($this->m_node->getSubmitBtnAttribList() as $attributeName) {
-            if ($this->m_node->isSubmitBtnClicked($attributeName)) {
-                /** @var SubmitButtonAttribute $btn */
-                $btn = $this->m_node->getAttribute($attributeName);
+            $record = $this->m_postvars;
+            foreach ($this->m_node->getSubmitBtnAttribList() as $attributeName) {
+                if ($this->m_node->isSubmitBtnClicked($attributeName)) {
 
-                // do update before callback
-                if ($btn->isDoUpdate()) {
-                    $this->doUpdate();
-                }
+                    /** @var SubmitButtonAttribute $btn */
+                    $btn = $this->m_node->getAttribute($attributeName);
 
-                if ($btn->getOnClickCallback()) {
-                    $result = call_user_func($btn->getOnClickCallback(), $record);
+                    if ($btn->getOnClickCallback()) {
+                        $result = call_user_func($btn->getOnClickCallback(), $record);
 
-                    if (isset($result)) {
-                        if ($result) {
-                            $this->m_node->getDb()->commit();
-                        } else {
-                            $this->m_node->getDb()->rollback();
+                        if (isset($result)) {
+                            if ($result) {
+                                $this->m_node->getDb()->commit();
+                            } else {
+                                $this->m_node->getDb()->rollback();
+                            }
                         }
                     }
+
+                    $sm = SessionManager::getInstance();
+                    $location = $sm->sessionUrl(Tools::dispatch_url($this->m_node->atkNodeUri(), $this->getEditAction(), [
+                        'atkselector' => $this->m_node->primaryKey($record),
+                        'atktab' => $this->m_node->getActiveTab(),
+                    ]), SessionManager::SESSION_BACK);
+
+                    $this->m_node->redirect($location);
+                    return;
                 }
-
-                $sm = SessionManager::getInstance();
-                $location = $sm->sessionUrl(Tools::dispatch_url($this->m_node->atkNodeUri(), $this->getEditAction(), [
-                    Node::PARAM_ATKSELECTOR => $this->m_node->primaryKey($record),
-                    'atktab' => $this->m_node->getActiveTab(),
-                ]), SessionManager::SESSION_BACK);
-
-                $this->m_node->redirect($location);
-                return;
             }
-        }
 
-        $this->doUpdate();
+            $this->doUpdate();
+        }
     }
 
     /**
@@ -141,7 +136,7 @@ class UpdateHandler extends ActionHandler
                 $sm = SessionManager::getInstance();
                 // something other than one of the three buttons was pressed. Let's just refresh.
                 $location = $sm->sessionUrl(Tools::dispatch_url($this->m_node->atkNodeUri(), $this->getEditAction(), array(
-                    Node::PARAM_ATKSELECTOR => $this->m_node->primaryKey($record),
+                    'atkselector' => $this->m_node->primaryKey($record),
                     'atktab' => $this->m_node->getActiveTab(),
                 )), SessionManager::SESSION_REPLACE);
                 $this->m_node->redirect($location);
@@ -313,7 +308,7 @@ class UpdateHandler extends ActionHandler
      */
     private function updateRecordInSession($record)
     {
-        $selector = Tools::atkArrayNvl($this->m_postvars, Node::PARAM_ATKSELECTOR, '');
+        $selector = Tools::atkArrayNvl($this->m_postvars, 'atkselector', '');
 
         return SessionStore::getInstance()->updateDataRowForSelector($selector, $record) !== false;
     }
@@ -325,8 +320,9 @@ class UpdateHandler extends ActionHandler
      *
      * This method can be overriden inside your node.
      *
+     * @param array $record the record
+     * @param string $error error string (only on fatal errors)
      * @param array $record
-     * @param null $error error string (only on fatal errors)
      */
     public function handleUpdateError($record, $error = null)
     {
@@ -334,13 +330,12 @@ class UpdateHandler extends ActionHandler
             $this->setRejectInfo($record);
             $sm = SessionManager::getInstance();
             $location = $sm->sessionUrl(Tools::dispatch_url($this->m_node->atkNodeUri(), $this->getEditAction(),
-                [Node::PARAM_ATKSELECTOR => $this->m_node->primaryKey($record)]), SessionManager::SESSION_BACK);
-
+                array('atkselector' => $this->m_node->primaryKey($record))), SessionManager::SESSION_BACK);
+            $this->m_node->redirect($location);
         } else {
             $location = $this->m_node->feedbackUrl('update', self::ACTION_FAILED, $record, $error);
+            $this->m_node->redirect($location);
         }
-
-        $this->m_node->redirect($location);
     }
 
     /**
@@ -356,10 +351,10 @@ class UpdateHandler extends ActionHandler
     {
         if (isset($this->m_postvars['atknoclose'])) {
             // 'save' was clicked
-            $params = [
-                Node::PARAM_ATKSELECTOR => $this->m_node->primaryKey($record),
+            $params = array(
+                'atkselector' => $this->m_node->primaryKey($record),
                 'atktab' => $this->m_node->getActiveTab(),
-            ];
+            );
             $sm = SessionManager::getInstance();
             $location = $sm->sessionUrl(Tools::dispatch_url($this->m_node->atkNodeUri(), $this->getEditAction(), $params), SessionManager::SESSION_REPLACE, 1);
         } else {

@@ -3,6 +3,7 @@
 namespace Sintattica\Atk\DataGrid;
 
 use Sintattica\Atk\Core\Config;
+use SmartyException;
 
 /**
  * The data grid limit box. Can be used to render a
@@ -65,6 +66,7 @@ class DataGridLimit extends DataGridComponent
      * Renders the limit box for the given data grid.
      *
      * @return null|string rendered HTML
+     * @throws SmartyException
      */
     public function render(): ?string
     {

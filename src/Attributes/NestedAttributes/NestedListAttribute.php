@@ -4,19 +4,15 @@
 namespace Sintattica\Atk\Attributes\NestedAttributes;
 
 
-use Exception;
 use Sintattica\Atk\Attributes\ListAttribute;
 use Sintattica\Atk\Core\Tools;
 use Sintattica\Atk\Db\Query;
 
-class NestedListAttribute extends ListAttribute implements NestedAttributeInterface
+class NestedListAttribute extends ListAttribute
 {
-    /**
-     * @throws Exception
-     */
-    public function __construct($name, $flags, string $nestedAttributeField, $optionArray, $valueArray = null)
+    public function __construct($name, $flags = 0, $optionArray, $valueArray = null)
     {
-        $this->setNestedAttributeField($nestedAttributeField);
+        $this->setIsNestedAttribute(true);
         parent::__construct($name, $flags, $optionArray, $valueArray);
     }
 
@@ -32,7 +28,7 @@ class NestedListAttribute extends ListAttribute implements NestedAttributeInterf
 
     public function getSearchCondition(Query $query, $table, $value, $searchmode, $fieldname = '')
     {
-        if (!$this->getOwnerInstance()->hasNestedAttribute($this->fieldName(), $this->getNestedAttributeField())) {
+        if (!$this->getOwnerInstance()->isNestedAttribute($this->fieldName())) {
             return parent::getSearchCondition($query, $table, $value, $searchmode, $fieldname);
         }
         // We only support 'exact' matches.

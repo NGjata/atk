@@ -202,7 +202,7 @@ class ProfileAttribute extends Attribute
             $temp = [];
             foreach ($result as $section => $modules) {
                 foreach ($modules as $module => $nodes) {
-                    if (!isset($temp[$module])) {
+                    if (!is_array($temp[$module])) {
                         $temp[$module] = [];
                     }
 
@@ -325,12 +325,12 @@ class ProfileAttribute extends Attribute
      * Display rights.
      * It will only display the rights & nodes that are selected for the user.
      *
-     * @param array<string, mixed> $record
+     * @param array $record
      * @param string $mode
      *
      * @return string Displayable string
      */
-    public function display(array $record, string $mode): string
+    public function display($record, $mode)
     {
         Page::getInstance()->register_script(Config::getGlobal('assets_url') . 'javascript/profileattribute.js');
 

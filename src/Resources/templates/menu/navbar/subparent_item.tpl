@@ -1,7 +1,7 @@
 <li class="dropdown-submenu dropdown-hover">
-    <a href="#" role="button"
+    <a id="dropdownSubMenu2" href="#" role="button"
        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-       class="sub-parent item dropdown-item dropdown-toggle {$classes}"
+       class="dropdown-item dropdown-toggle {$classes}"
     >
         {if $icon}
             {include file='menu/sidebar/icon.tpl'}

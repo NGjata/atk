@@ -4,21 +4,17 @@
 namespace Sintattica\Atk\Attributes\NestedAttributes;
 
 
-use Exception;
 use Sintattica\Atk\Attributes\Attribute;
 use Sintattica\Atk\Attributes\NumberAttribute;
 use Sintattica\Atk\Core\Tools;
 use Sintattica\Atk\Db\Query;
 
-class NestedNumberAttribute extends NumberAttribute implements NestedAttributeInterface
+class NestedNumberAttribute extends NumberAttribute
 {
 
-    /**
-     * @throws Exception
-     */
-    public function __construct($name, $flags, string $nestedAttributeField, $decimals = null)
+    public function __construct($name, $flags = 0, $decimals = null)
     {
-        $this->setNestedAttributeField($nestedAttributeField);
+        $this->setIsNestedAttribute(true);
         parent::__construct($name, $flags, $decimals);
     }
 
@@ -44,7 +40,7 @@ class NestedNumberAttribute extends NumberAttribute implements NestedAttributeIn
      */
     public function getSearchCondition(Query $query, $table, $value, $searchmode, $fieldname = '')
     {
-        if (!$this->getOwnerInstance()->hasNestedAttribute($this->fieldName(), $this->getNestedAttributeField())) {
+        if (!$this->getOwnerInstance()->isNestedAttribute($this->fieldName())) {
             return parent::getSearchCondition($query, $table, $value, $searchmode, $fieldname);
         }
 
@@ -64,7 +60,7 @@ class NestedNumberAttribute extends NumberAttribute implements NestedAttributeIn
         $fields_sql = self::buildJSONExtractValue($this, $table);
 
         $func = $searchmode . 'Condition';
-        if (method_exists($query, $func) && ($value || ($value === 0))) {
+        if (method_exists($query, $func) && ($value || ($value == 0))) {
             return $query->$func($fields_sql, $this->escapeSQL($value), $this->dbFieldType());
         } elseif (!method_exists($query, $func)) {
             Tools::atkdebug("Database doesn't support searchmode '$searchmode' for " . $this->fieldName() . ', ignoring condition.');
@@ -105,7 +101,7 @@ class NestedNumberAttribute extends NumberAttribute implements NestedAttributeIn
             $tableName = $attr->getDb()->quoteIdentifier($table);
         }
 
-        $nestedAttributeFieldName = $attr->getDb()->quoteIdentifier($attr->getNestedAttributeField());
+        $nestedAttributeFieldName = $attr->getDb()->quoteIdentifier($attr->m_ownerInstance->getNestedAttributeField());
         $nestedAttrName = $attr->fieldName();
 
         return "$tableName.$nestedAttributeFieldName->'$.$nestedAttrName'";
@@ -122,7 +118,7 @@ class NestedNumberAttribute extends NumberAttribute implements NestedAttributeIn
      */
     static public function getOrderByStatementStatic(Attribute $attr, $extra = [], $table = '', $direction = 'ASC')
     {
-        if ($attr->getOwnerInstance()->hasNestedAttribute($attr->fieldName(), $attr->getNestedAttributeField())) {
+        if ($attr->getOwnerInstance()->isNestedAttribute($attr->fieldName())) {
             $json_query = self::buildJSONExtractValue($attr, $table);
 
             if ($attr->dbFieldType() == 'string' && $attr->getDb()->getForceCaseInsensitive()) {

@@ -473,12 +473,12 @@ class DataGrid
 
         $this->addComponent('list', __NAMESPACE__.'\\DataGridList');
         $this->addComponent('summary', __NAMESPACE__.'\\DataGridSummary');
-        $this->addComponent('limit', __NAMESPACE__.'\\DataGridLimit', ['showAll' => Config::getGlobal('enable_showall')]);
+        $this->addComponent('limit', __NAMESPACE__.'\\DataGridLimit', array('showAll' => Config::getGlobal('enable_showall')));
         $this->addComponent('norecordsfound', __NAMESPACE__.'\\DataGridNoRecordsFound');
         $this->addComponent('paginator', __NAMESPACE__.'\\DataGridPaginator');
 
         if (!empty($this->getNode()->m_index)) {
-            $this->addComponent('index', __NAMESPACE__ . '\\DataGridIndex');
+            $this->addComponent('index', 'atk.datagrid.atkdgindex');
         }
 
         if (Tools::count($this->getNode()->m_editableListAttributes) > 0) {
@@ -1614,10 +1614,10 @@ class DataGrid
         if ($force || ($this->getRecords() === null && $this->getSelectHandler() === null)) {
             $records = $this->selectRecords();
             $this->setRecords($records);
-        } else {
-            // retrieve records using a custom select handler
-            if ($this->getRecords() === null) {
-                $records = call_user_func_array($this->getSelectHandler(), [$this]);
+        } // retrieve records using a custom select handler
+        else {
+            if ($force || $this->getRecords() === null) {
+                $records = call_user_func_array($this->getSelectHandler(), array($this));
                 $this->setRecords($records);
             }
         }
@@ -1626,9 +1626,9 @@ class DataGrid
         if ($force || ($this->getCount() === null && $this->getCountHandler() === null)) {
             $count = $this->countRecords();
             $this->setCount($count);
-        } else {
-            // retrieve record count using a custom cont handler
-            if ($this->getCount() === null) {
+        } // retrieve record count using a custom cont handler
+        else {
+            if ($force || $this->getCount() === null) {
                 $count = call_user_func_array($this->getCountHandler(), array($this));
                 $this->setCount($count);
             }

@@ -33,7 +33,7 @@ class NumberAttribute extends Attribute
     public $m_thousandsseparator;
 
     /** When TRUE, the thousands separator will be shown when formatting a number */
-    public $m_use_thousands_separator;
+    public $m_use_thousands_separator = false;
 
     /** When TRUE, trailing zeros will be shown */
     public $m_trailingzeros = false; // Show trailing zeros
@@ -62,7 +62,6 @@ class NumberAttribute extends Attribute
         $this->setDecimals($decimals);
         $this->setDecimalSeparator(Tools::atktext(self::SEPARATOR_DECIMAL, 'atk'));
         $this->setThousandsSeparator(Tools::atktext(self::SEPARATOR_THOUSAND, 'atk'));
-        $this->m_use_thousands_separator = Config::getGlobal('numberattribute_use_thousands_separator');
     }
 
     public function getDecimals()
@@ -168,7 +167,7 @@ class NumberAttribute extends Attribute
      * The regular Attribute uses PHP's nl2br() and htmlspecialchars()
      * methods to prepare a value for display, unless $mode is "cvs".
      *
-     * @param array<string, mixed> $record The record that holds the value for this attribute
+     * @param array $record The record that holds the value for this attribute
      * @param string $mode The display mode ("view" for viewpages, or "list"
      *                       for displaying in recordlists, "edit" for
      *                       displaying in editscreens, "add" for displaying in
@@ -177,7 +176,7 @@ class NumberAttribute extends Attribute
      *
      * @return string HTML String
      */
-    public function display(array $record, string $mode): string
+    public function display($record, $mode)
     {
         if (isset($record[$this->fieldName()]) && $record[$this->fieldName()] !== '') {
             return $this->formatNumber($record[$this->fieldName()]);
@@ -201,18 +200,15 @@ class NumberAttribute extends Attribute
      */
     public function hide($record, $fieldprefix, $mode)
     {
-        $value = '';
-        if (isset($record[$this->fieldName()])) {
-            // the next if-statement is a workaround for derived attributes which do
-            // not override the hide() method properly. This will not give them a
-            // working hide() functionality but at least it will not give error messages.
-            if (!is_array($record[$this->fieldName()])) {
-                $value = $this->formatNumber($record[$this->fieldName()]);
-            } else {
-                Tools::atkdebug('Warning attribute ' . $this->m_name . ' has no proper hide method!');
-            }
+        // the next if-statement is a workaround for derived attributes which do
+        // not override the hide() method properly. This will not give them a
+        // working hide() functionality but at least it will not give error messages.
+        if (!is_array($record[$this->fieldName()])) {
+            $value = $this->formatNumber($record[$this->fieldName()]);
+            return '<input type="hidden" id="' . $this->getHtmlId($fieldprefix) . '" name="' . $this->getHtmlName($fieldprefix) . '" value="' . htmlspecialchars($value) . '">';
+        } else {
+            Tools::atkdebug('Warning attribute ' . $this->m_name . ' has no proper hide method!');
         }
-        return '<input type="hidden" id="' . $this->getHtmlId($fieldprefix) . '" name="' . $this->getHtmlName($fieldprefix) . '" value="' . htmlspecialchars($value) . '">';
     }
 
     /**
@@ -361,19 +357,19 @@ class NumberAttribute extends Attribute
      * own conversion.
      * This is the exact opposite of the db2value method.
      *
-     * @param array $record The record that holds this attribute's value.
+     * @param array $rec The record that holds this attribute's value.
      *
      * @return string The database compatible value
      */
-    public function value2db(array $record)
+    public function value2db(array $rec)
     {
-        if ((!isset($record[$this->fieldName()]) || strlen($record[$this->fieldName()]) == 0) && !$this->hasFlag(self::AF_OBLIGATORY)) {
+        if ((!isset($rec[$this->fieldName()]) || strlen($rec[$this->fieldName()]) == 0) && !$this->hasFlag(self::AF_OBLIGATORY)) {
             return;
         }
         if ($this->getDecimals() > 0) {
-            return round((float)$record[$this->fieldName()], $this->getDecimals());
+            return round((float)$rec[$this->fieldName()], $this->getDecimals());
         } else {
-            return isset($record[$this->fieldName()]) ? $record[$this->fieldName()] : null;
+            return isset($rec[$this->fieldName()]) ? $rec[$this->fieldName()] : null;
         }
     }
 
@@ -595,17 +591,15 @@ class NumberAttribute extends Attribute
         $class = $this->getCSSClassAttribute();
         $id = $this->getHtmlId($fieldprefix);
         $name = $this->getSearchFieldName($fieldprefix);
-
         $style = '';
         $type = $extended ? 'extended_search' : 'search';
-        $this->setSearchCssStyleMinWidth($record, $type);
         foreach ($this->getCssStyles($type) as $k => $v) {
             $style .= "$k:$v;";
         }
 
         if (!$extended) {
             if (is_array($value)) { // values entered in the extended search
-                // TODO: we would need to know the searchmode for better handling...
+                // TODO we would need to know the searchmode for better handling...
                 if ($value['from'] != '' && $value['to'] != '') {
                     $value = $value['from'] . '/' . $value['to'];
                 } elseif ($value['from'] != '') {
@@ -638,18 +632,10 @@ class NumberAttribute extends Attribute
                 $result .= ' style="' . $style . '"';
             }
             $result .= '>';
-
-            $result .= '<div class="input-group input-group-sm">';
-            $result .= '<div class="input-group-prepend"><span class="input-group-text" id="inputGroup-sizing-sm">' . Tools::atktext('from') . '</span></div>';
             $result .= '<input type="text" id="' . $id . '" ' . $class . ' name="' . $name . '[from]" value="' . htmlentities($valueFrom) . '"' . ($searchsize > 0 ? ' size="' . $searchsize . '"' : '') . '>';
-            $result .= '</div>';
-
-            $result .= '<div class="input-group input-group-sm ml-0 ml-lg-1 mt-1 mt-lg-0">';
-            $result .= '<div class="input-group-prepend"><span class="input-group-text" id="inputGroup-sizing-sm">' . Tools::atktext('until') . '</span></div>';
-            $result .= '<input type="text" id="' . $id . '" class="form-control form-control-sm ' . get_class($this) . '" name="' . $name . '[to]" value="' . htmlentities($valueTo) . '"' . ($searchsize > 0 ? ' size="' . $searchsize . '"' : '') . '>';
-            $result .= '</div>';
 
 
+            $result .= ' (' . Tools::atktext('until') . ' <input type="text" id="' . $id . '" class="form-control ' . get_class($this) . '" name="' . $name . '[to]" value="' . htmlentities($valueTo) . '"' . ($searchsize > 0 ? ' size="' . $searchsize . '"' : '') . '>)';
             $result .= '</div>';
         }
 

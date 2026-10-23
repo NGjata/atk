@@ -3,7 +3,6 @@
 namespace Sintattica\Atk\Core;
 
 use Sintattica\Atk\Attributes\NumberAttribute;
-use Sintattica\Atk\Utils\Selector;
 
 /**
  * The ATK data node can be used to create nodes that don't retrieve their
@@ -25,7 +24,8 @@ class DataNode extends Node
      *
      * @param string $type node type (by default the class name)
      * @param int $flags node flags
-     * @return void
+     *
+     * @return DataNode
      */
     public function __construct($type = '', $flags = 0)
     {
@@ -38,7 +38,7 @@ class DataNode extends Node
      *
      * @param array $data data list
      */
-    public function setData(array $data): void
+    public function setData($data)
     {
         $this->m_data = $data;
     }
@@ -48,7 +48,7 @@ class DataNode extends Node
      *
      * @return array data list
      */
-    protected function getData(): array
+    protected function getData()
     {
         return $this->m_data;
     }
@@ -56,28 +56,30 @@ class DataNode extends Node
     /**
      * Select records using the given criteria.
      *
-     * @param string|null $condition selector string
-     * @param null $params order string
-     * @return array|Selector selected records
+     * @param string $selector selector string
+     * @param string $order order string
+     * @param array $limit limit array
+     *
+     * @return array selected records
      */
-    public function select(string $condition = null, $params = null): array|Selector
+    public function select($selector = null, $order = null, $limit = null)
     {
-        Tools::atkdebug(get_class($this).'::select('.$condition.')');
+        Tools::atkdebug(get_class($this).'::select('.$selector.')');
 
-        if ($params == null) {
-            $params = $this->getOrder();
+        if ($order == null) {
+            $order = $this->getOrder();
         }
 
         $params = array(
-            'selector' => $condition,
-            'order' => $params,
+            'selector' => $selector,
+            'order' => $order,
             'offset' => isset($limit['offset']) ? $limit['offset'] : 0,
             'limit' => isset($limit['limit']) ? $limit['limit'] : -1,
             'search' => isset($this->m_postvars['atksearch']) ? $this->m_postvars['atksearch'] : null,
         );
 
         $result = $this->findData($params);
-        Tools::atkdebug('Result '.get_class($this).'::select('.$condition.') => '.Tools::count($result).' row(s)');
+        Tools::atkdebug('Result '.get_class($this).'::select('.$selector.') => '.Tools::count($result).' row(s)');
 
         return $result;
     }
@@ -85,10 +87,11 @@ class DataNode extends Node
     /**
      * Returns how many records will be returned for the given selector.
      *
-     * @param string|null $selector selector string
+     * @param string $selector selector string
+     *
      * @return int record count
      */
-    public function count(string $selector = null): int
+    public function count($selector = null)
     {
         $params = array(
             'selector' => $selector,
@@ -104,9 +107,10 @@ class DataNode extends Node
      * Supported parameters are: selector, limit, offset and order.
      *
      * @param array $params parameters
+     *
      * @return int number of "records"
      */
-    protected function countData(array $params = array()): int
+    protected function countData($params = array())
     {
         return Tools::count($this->findData($params));
     }
@@ -119,7 +123,7 @@ class DataNode extends Node
      *
      * @return array found data
      */
-    protected function findData(array $params = array()): array
+    protected function findData($params = array())
     {
         $selector = @$params['selector'] ? $params['selector'] : '';
         $limit = @$params['limit'] ? $params['limit'] : -1;
@@ -143,9 +147,10 @@ class DataNode extends Node
      * Filter invalid columns.
      *
      * @param array $data data
+     *
      * @return array data
      */
-    protected function filterColumns(array $data): array
+    protected function filterColumns($data)
     {
         $result = [];
 
@@ -166,9 +171,10 @@ class DataNode extends Node
      * Returns the full selector including added filters.
      *
      * @param string $selector selector
+     *
      * @return string full selector string
      */
-    protected function getSelector(string $selector): string
+    protected function getSelector($selector)
     {
         $result = $selector;
 
@@ -188,9 +194,10 @@ class DataNode extends Node
      * which key/values can be used to filter data.
      *
      * @param string $selector selector string
+     *
      * @return array criteria
      */
-    protected function getCriteria(string $selector): array
+    protected function getCriteria($selector)
     {
         $criteria = $this->m_filters;
 
@@ -231,9 +238,10 @@ class DataNode extends Node
      * @param array $data data list
      * @param array $criteria selector criteria list
      * @param array $search search fields / values
+     *
      * @return array filtered data
      */
-    protected function filterData(array $data, array $criteria, array $search): array
+    protected function filterData($data, $criteria, $search)
     {
         $result = [];
 
@@ -252,9 +260,10 @@ class DataNode extends Node
      * @param array $record record
      * @param array $criteria selector criteria list
      * @param array $search search fields / values
+     *
      * @return bool is valid?
      */
-    protected function isValidRecord(array $record, array $criteria, array $search): bool
+    protected function isValidRecord($record, $criteria, $search)
     {
         foreach ($criteria as $key => $value) {
             if ($record[$key] != $value) {
@@ -276,9 +285,10 @@ class DataNode extends Node
      * is invalid false is returned.
      *
      * @param string $order order string
+     *
      * @return array|bool array 1st element column, 2nd element ascending? or false
      */
-    protected function translateOrder(string $order): bool|array
+    protected function translateOrder($order)
     {
         if (empty($order)) {
             return false;
@@ -309,23 +319,21 @@ class DataNode extends Node
      *
      * @param array $data data list
      * @param string $order order string
+     *
      * @return array data list
      */
-    protected function sortData(array $data, string $order): array
+    protected function sortData($data, $order)
     {
         list($column, $asc) = $this->translateOrder($order);
 
-        if ($column) {
+        if ($column != false) {
             $attr = $this->getAttribute($column);
 
             if ($attr instanceof NumberAttribute) {
-                usort($data, function ($a, $b) use ($column, $asc) {
-                    return $a[$column] <=> $b[$column];
-                });
+                usort($data,
+                    create_function('$a, $b', 'return $a["'.$column.'"] == $b["'.$column.'"] ? 0 : ($a["'.$column.'"] < $b["'.$column.'"] ? -1 : 1);'));
             } else {
-                usort($data, function ($a, $b) use ($column, $asc) {
-                    return strcmp($a[$column], $b[$column]);
-                });
+                usort($data, create_function('$a, $b', 'return strcasecmp($a["'.$column.'"], $b["'.$column.'"]);'));
             }
 
             if (!$asc) {
@@ -342,9 +350,10 @@ class DataNode extends Node
      * @param array $data data list
      * @param int $limit limit
      * @param int $offset offset
+     *
      * @return array limited data
      */
-    protected function limitData(array $data, int $limit = -1, int $offset = 0): array
+    protected function limitData($data, $limit = -1, $offset = 0)
     {
         if ($limit >= 0) {
             $data = array_slice($data, $offset, $limit);
@@ -360,7 +369,7 @@ class DataNode extends Node
      *
      * @return bool false
      */
-    public function addDb(array &$record, bool $exectrigger = true, string $mode = 'add', array $excludelist = []): bool
+    public function addDb(&$record = null, $exectrigger = true, $mode = 'add', $excludelist = [])
     {
         return false;
     }
@@ -370,7 +379,7 @@ class DataNode extends Node
      *
      * @return bool false
      */
-    public function updateDb(array &$record, bool $exectrigger = true, array|string $excludes = '', array|string $includes = ''): bool
+    public function updateDb(&$record = null, $exectrigger = true, $excludes = '', $includes = '')
     {
         return false;
     }
@@ -380,7 +389,7 @@ class DataNode extends Node
      *
      * @return bool false
      */
-    public function deleteDb(string $selector, bool $exectrigger = true, bool $failwhenempty = false): bool
+    public function deleteDb($selector = null, $exectrigger = true, $failwhenempty = false)
     {
         return false;
     }
@@ -388,8 +397,7 @@ class DataNode extends Node
     /**
      * Don't fetch meta data.
      */
-    public function setAttribSizes(): bool
+    public function setAttribSizes()
     {
-        return false;
     }
 }

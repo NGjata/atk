@@ -2,11 +2,9 @@
 
 namespace Sintattica\Atk\Attributes;
 
-use Sintattica\Atk\Core\Config;
 use Sintattica\Atk\Core\Tools;
 use Sintattica\Atk\DataGrid\DataGrid;
 use Sintattica\Atk\Db\Query;
-use Sintattica\Atk\Ui\Page;
 
 /**
  * The TimeAttribute class represents an attribute of a node
@@ -93,17 +91,17 @@ class TimeAttribute extends Attribute
             ];
         }
     }
-
+    
 
     /**
      * Display's text version of Record.
      *
-     * @param array<string, mixed> $record
+     * @param array $record
      * @param string $mode
      *
      * @return string text string of $record
      */
-    public function display(array $record, string $mode): string
+    public function display($record, $mode)
     {
         $value = isset($record[$this->fieldName()]) ? $record[$this->fieldName()] : null;
         if (!is_array($value)) {
@@ -130,46 +128,40 @@ class TimeAttribute extends Attribute
      * @param array $postvars The array with html posted values ($_POST, for
      *                        example) that holds this attribute's value.
      *
-     * @return array|null The internal value
+     * @return string The internal value
      */
     public function fetchValue($postvars)
     {
-        $value = $postvars[$this->fieldName()];
-        $result = [];
+        $result = $postvars[$this->fieldName()];
 
-        if (!is_array($value)) {
-            $value = trim($value);
+        if (!is_array($result)) {
+            $result = trim($result);
             // $result could contain "date" data (when TimeAttribute is embedded in the DateTimeAttribute)
             // we extract the time information assuming the space is the separator between data and time
-            if (strpos($value, ' ') !== false) {
-                $value = trim(substr($value, strpos($value, ' ')));
+            if (strpos($result, ' ') !== false) {
+                $result = trim(substr($result, strpos($result, ' ')));
             }
 
-            $valueExploded = explode(':', $value);
-            if (Tools::count($valueExploded) <= 1) {
-                return null;
+            $exploded = explode(':', $result);
+            if (Tools::count($exploded) <= 1) {
+                return '';
             }
-
-            $result['hours'] = $valueExploded[0];
-            $result['minutes'] = $valueExploded[1];
-            if ($valueExploded[2]) {
-                $result['seconds'] = $valueExploded[2];
+            $result = [];
+            $result['hours'] = $exploded[0];
+            $result['minutes'] = $exploded[1];
+            if ($exploded[2]) {
+                $result['seconds'] = $exploded[2];
             }
-
         } else {
-            $result = [
-                'hours' => $value['hours'],
-                'minutes' => $value['minutes'],
-                'seconds' => $value['seconds'],
-            ];
-
-            if (strpos($result['seconds'], ':') !== false) {
-                $result['seconds'] = explode(':', $result['seconds'])[0];
+            if (strlen($result['hours']) == 0 || strlen($result['minutes']) == 0) {
+                return;
+            } else {
+                $result = array(
+                    'hours' => $result['hours'],
+                    'minutes' => $result['minutes'],
+                    'seconds' => $result['seconds'],
+                );
             }
-        }
-
-        if (strlen($result['hours']) == 0 || strlen($result['minutes']) == 0) {
-            return null;
         }
 
         return $result;
@@ -188,8 +180,6 @@ class TimeAttribute extends Attribute
      */
     public function edit($record, $fieldprefix, $mode)
     {
-        $page = Page::getInstance();
-
         if ((($this->m_default == "NOW" && $this->m_ownerInstance->m_action == "add") ||
             ($this->m_default == "" && $this->hasFlag(self::AF_OBLIGATORY)) && !$this->hasFlag(self::AF_TIME_DEFAULT_EMPTY))
         ) {
@@ -223,14 +213,15 @@ class TimeAttribute extends Attribute
         $escapedFieldHtmlId = $id . '\\\\[seconds\\\\]';
         $m_secBox .= "<script>ATK.Tools.enableSelect2ForSelect('#$escapedFieldHtmlId');</script>";
 
+
         if (is_array($field)) {
-            $m_defHour = $field['hours'] ?? null;
-            $m_defMin = $field['minutes'] ?? null;
-            $m_defSec = $field['seconds'] ?? null;
+            $m_defHour = $field['hours'];
+            $m_defMin = $field['minutes'];
+            $m_defSec = $field['seconds'];
         } else {
             $m_defHour = $default[0];
-            $m_defMin = $default[1] ?? null;
-            $m_defSec = $default[2] ?? null;
+            $m_defMin = isset($default[1]) ? $default[1] : null;
+            $m_defSec = isset($default[2]) ? $default[2] : null;
         }
 
         Tools::atkdebug("defhour=$m_defHour   defmin=$m_defMin");
@@ -292,98 +283,38 @@ class TimeAttribute extends Attribute
             $m_secBox .= sprintf("<option value='%02d' %s>%02d</option>", $this->m_steps[$i], $sel, $this->m_steps[$i]);
         }
 
-
-        $timePickerHtmlId = $fieldprefix . $this->fieldName() . "-tp";
-
         // close dropdown structures
         $m_hourBox .= '</select>';
         $m_minBox .= '</select>';
-
         if ($this->hasFlag(self::AF_TIME_SECONDS)) {
             $m_secBox .= '</select>';
+            $m_secBox = '&nbsp;:&nbsp;' . $m_secBox;
         } else {
             $m_secBox = '<input type="hidden" id="' . $fieldprefix . $this->fieldName() . '[seconds]" name="' . $fieldprefix . $this->fieldName() . "[seconds]\" value=\"00\">";
         }
 
-        $timePickerInput = '<input style="display:none;" data-target="#' . $timePickerHtmlId . '" type="hidden" id="' . $timePickerHtmlId . '-input" name="' . $timePickerHtmlId . '" />';
-
-        $iconBox = '<span id="' . $timePickerHtmlId . '-icon" data-target="#' . $timePickerHtmlId . '" data-toggle="datetimepicker" class="form-control form-control-sm atk-time-right far fa-clock"></span>';
+        $iconBox = '<span class="form-control form-control-sm atk-time-right far fa-clock"></span>';
 
         // assemble display version
-        // TODO: removed $script because there is a js bug
-        $timeedit = $m_hourBox . $m_minBox . $m_secBox . $iconBox . $timePickerInput;
+        $timeedit = $m_hourBox . $m_minBox . $m_secBox . $iconBox;
 
 
-        $page->register_loadscript('
-            $( () => { 
-                const dTimePickerContainer = $("#' . $timePickerHtmlId . '");
-                const enableSeconds = (' . ($this->hasFlag(self::AF_TIME_SECONDS) ? "true" : "false") . ');
-                let defaultSetTime = moment({ hour: ' . ($m_defHour ?: 0) . ', minute: ' . ($m_defMin ?: 0) . ', second: (enableSeconds ? "' . $m_defSec . '" : 0) });
-              
-                dTimePickerContainer.datetimepicker({
-                    timePicker24Hour: true,
-                    widgetPositioning: {
-                        horizontal: "right",
-                        vertical: "top",
-                    },
-                    defaultDate: defaultSetTime,
-                    format: enableSeconds ? "HH:mm:ss" : "HH:mm",
-                    locale: "' . Config::getGlobal('language') . '"   
-                });
-                
-                dTimePickerContainer.on("change.datetimepicker", changeTimeEvt => {
-                    if (changeTimeEvt.date != null) {  
-                        const hours = changeTimeEvt.date.hours() < 10 ? "0" + changeTimeEvt.date.hours() : changeTimeEvt.date.hours();
-                        const minutes = changeTimeEvt.date.minutes() < 10 ? "0" + changeTimeEvt.date.minutes() : changeTimeEvt.date.minutes();
-                        const seconds = changeTimeEvt.date.seconds() < 10 ? "0" + changeTimeEvt.date.seconds() : changeTimeEvt.date.seconds(); 
-                    
-                        const hoursHtmlEl = $(document.getElementById("' . $id . '[hours]"));
-                        const minHtmlEl = $(document.getElementById("' . $id . '[minutes]"));
-                        const secHtmlEl = $(document.getElementById("' . $id . '[seconds]")); 
-                    
-                        changeSelect2Value(hoursHtmlEl, hours);
-                        changeSelect2Value(minHtmlEl, minutes);
-                        changeSelect2Value(secHtmlEl, seconds); 
-                    } 
-                });
-                 
-                function changeSelect2Value(select2HtmlEl, val){
-                    if (select2HtmlEl.find("option[value=\'" + val + "\']").length) {
-                        select2HtmlEl.val(val).trigger("change");
-                     } else {  
-                        const newOption = new Option(val, val, true, true); 
-                        select2HtmlEl.append(newOption).trigger("change");
-                     }
-                }
-               
-                window.addEventListener("click", function(e){
-                    const timePickerPopup = document.getElementsByClassName("timepicker")[0];
-                    if (!document.getElementById("' . $timePickerHtmlId . '-icon").contains(e.target) 
-                            && timePickerPopup != null 
-                            && !timePickerPopup.contains(e.target)
-                       ){ 
-                        dTimePickerContainer.datetimepicker("hide");
-                    }                     
-                }); 
-            });
-            ');
-
-        return '<div class="TimeAttribute form-inline"><div class="atk-time-group" id="' . $timePickerHtmlId . '" data-target-input="nearest">' . $timeedit . '</div></div>';
+        return '<div class="TimeAttribute form-inline"><div class="atk-time-group">' . $timeedit . '</div></div>';
     }
 
     /**
      * Converts the internal attribute value to one that is understood by the
      * database.
      *
-     * @param array $record The record that holds this attribute's value.
+     * @param array $rec The record that holds this attribute's value.
      *
      * @return string The database compatible value
      */
-    public function value2db(array $record)
+    public function value2db(array $rec)
     {
-        $hours = $record[$this->fieldName()]['hours'];
-        $minutes = $record[$this->fieldName()]['minutes'];
-        $seconds = $record[$this->fieldName()]['seconds'];
+        $hours = $rec[$this->fieldName()]['hours'];
+        $minutes = $rec[$this->fieldName()]['minutes'];
+        $seconds = $rec[$this->fieldName()]['seconds'];
 
         if ($hours == '' || $minutes == '' || ($this->hasFlag(self::AF_TIME_SECONDS) && $seconds == '')) {
             return null;
@@ -395,20 +326,20 @@ class TimeAttribute extends Attribute
     /**
      * Convert database value to time array.
      *
-     * @param array $record database record with date field
+     * @param array $rec database record with date field
      *
      * @return array with 3 fields (hours:minutes:seconds)
      */
-    public function db2value($record)
+    public function db2value($rec)
     {
-        if (!isset($record[$this->fieldName()]) || strlen($record[$this->fieldName()]) == 0) {
+        if (!isset($rec[$this->fieldName()]) || strlen($rec[$this->fieldName()]) == 0) {
             $retval = null;
         } else {
-            $retval = [
-                'hours' => substr($record[$this->fieldName()], 0, 2),
-                'minutes' => substr($record[$this->fieldName()], 3, 2),
-                'seconds' => substr($record[$this->fieldName()], 6, 2),
-            ];
+            $retval = array(
+                'hours' => substr($rec[$this->fieldName()], 0, 2),
+                'minutes' => substr($rec[$this->fieldName()], 3, 2),
+                'seconds' => substr($rec[$this->fieldName()], 6, 2),
+            );
         }
 
         return $retval;
@@ -467,7 +398,7 @@ class TimeAttribute extends Attribute
         }
     }
 
-    public function addToQuery($query, $tablename = '', $fieldaliasprefix = '', &$record = [], $level = 0, $mode = '')
+    public function addToQuery($query, $tablename = '', $fieldaliasprefix = '', &$record, $level = 0, $mode = '')
     {
         if ($mode == 'add' || $mode == 'update') {
             $value = $this->value2db($record);
@@ -578,11 +509,11 @@ class TimeAttribute extends Attribute
     {
         //Assuming hh:mm:ss
         //Using negative substr because $stringvalue may contains date values (eg: "YYYY-MM-DD hh:mm:ss")
-        $retval = [
+        $retval = array(
             'hours' => substr($stringvalue, -8, 2),
             'minutes' => substr($stringvalue, -5, 2),
             'seconds' => substr($stringvalue, -2, 2),
-        ];
+        );
 
         if (!$retval['seconds']) {
             $retval['seconds'] = '00';

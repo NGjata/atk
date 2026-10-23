@@ -107,25 +107,13 @@ class DummyAttribute extends Attribute
      *                            make a difference for $extended is true, but
      *                            derived attributes may reimplement this.
      * @param string $fieldprefix The fieldprefix of this attribute's HTML element.
-     * @param DataGrid|null $grid
+     * @param DataGrid $grid
      *
      * @return string A piece of html-code
      */
     public function search($record, $extended = false, $fieldprefix = '', DataGrid $grid = null): string
     {
         return '&nbsp;';
-    }
-
-    /**
-     * Set the text of this attribute.
-     *
-     * @param string $text
-     * @return DummyAttribute
-     */
-    public function setText(string $text): self
-    {
-        $this->m_text = $text;
-        return $this;
     }
 
     /**
@@ -137,9 +125,19 @@ class DummyAttribute extends Attribute
      *
      * @return string Text
      */
-    public function display(array $record, string $mode): string
+    public function display($record, $mode)
     {
         return $this->m_text;
+    }
+
+    /**
+     * Set the text of this attribute.
+     *
+     * @param string $text
+     */
+    public function setText($text)
+    {
+        $this->m_text = $text;
     }
 
     /**
@@ -147,7 +145,7 @@ class DummyAttribute extends Attribute
      *
      * @return string The text of the attribute
      */
-    public function getText(): string
+    public function getText()
     {
         return $this->m_text;
     }
@@ -171,7 +169,7 @@ class DummyAttribute extends Attribute
         return;
     }
 
-    public function addToQuery($query, $tablename = '', $fieldaliasprefix = '', &$record = [], $level = 0, $mode = '')
+    public function addToQuery($query, $tablename = '', $fieldaliasprefix = '', &$record, $level = 0, $mode = '')
     {
     }
 

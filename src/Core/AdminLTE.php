@@ -99,6 +99,7 @@ class AdminLTE
     private const ACCENT_OLIVE = 'accent-olive';
 
     private $loginBodyClasses = ['login-page'];
+    private $generalBodyClasses = ["sidebar-mini", "layout-fixed"];
 
     /**
      * Set the default skin combination for navbar and sidebar
@@ -111,17 +112,11 @@ class AdminLTE
     ];
 
     private $devEnvSkinsBundle = [
-        self::SKINS_NAV_LIGHT_LIGHT,
-        self::SKINS_NAV_LIGHT_WARNING
+            self::SKINS_NAV_LIGHT_LIGHT,
+            self::SKINS_NAV_LIGHT_WARNING
     ];
 
     private $currentNavBarSkinsBundle = [];
-
-
-    /* start config fields */
-
-    //These properties are necessary only if a config item doesn't exist
-    //If these properties are set in atk configuration the fields are not needed for anything.
 
     private $expandSidebarOnHover = true;
     private $indentSidebarChildren = true;
@@ -138,9 +133,6 @@ class AdminLTE
     private $holdTransition = false; //Transit o min-menu mode with a linear transition
     private $fixedNavHeader = true;
     private $menuAccordion = true;
-
-    /* end of config fields */
-
 
     private static $adminLTEInstance = null;
 
@@ -159,65 +151,76 @@ class AdminLTE
     }
 
 
-    public function getGeneralBodyClasses(): string
+    public function getGeneralBodyClassess(): string
     {
-        $bodyClasses = "";
+        $bodyClasses = implode(' ', $this->generalBodyClasses);
 
-        if (Config::getGlobal('menu_hide_sidebar') === true) {
-            $bodyClasses .= "layout-top-nav";
-
-        } else {
-            $bodyClasses .= "sidebar-mini layout-fixed";
-
-            if ($this->isCollapsedSidebar()) {
-                $bodyClasses .= " sidebar-collapse";
-            }
-
-            $bodyClasses .= $this->getFixedNavHeaderClass();
-        }
-
-        if ($this->isBodySmallText()) {
+        if ($this->bodySmallText) {
             $bodyClasses .= " text-sm";
         }
 
-        if ($this->isTransitionHold()) {
+        if ($this->holdTransition) {
             $bodyClasses .= " hold-transition";
         }
 
+        $bodyClasses .= $this->getFixedNavHeaderClass();
+
         return $bodyClasses;
     }
+
+    public function isFixedNavHeader(): bool
+    {
+        return $this->fixedNavHeader;
+    }
+
+    public function getFixedNavHeaderClass(): string
+    {
+        return $this->isFixedNavHeader() ? " layout-navbar-fixed" : "";
+    }
+
 
     public function getLoginClasses(): string
     {
         return implode(' ', $this->loginBodyClasses);
     }
 
+
     public function getSidebarClasses(): string
     {
 
-        $classes = implode(' ', $this->currentSidebarSkinsBundle);
+        $classes = "";
 
-        if ($this->isSidebarSmallText()) {
+        $classes .= implode(' ', $this->currentSidebarSkinsBundle);
+
+        if ($this->sidebarSmallText) {
             $classes .= " text-sm";
         }
 
-        if (!$this->isExpandSidebarOnHover()) {
+        if (!$this->expandSidebarOnHover) {
             $classes .= " sidebar-no-expand";
         }
 
-
-        $classes .= " elevation-" . $this->getSidebarElevation();
+        $classes .= " elevation-" . (string)$this->sidebarElevation;
 
         return $classes;
     }
 
 
+    public function isTransitionHold(): bool
+    {
+        return $this->holdTransition;
+    }
+
+
     public function getNavSidebarClasses(): string
     {
-        $classes = $this->isIndentSidebarChildren() ? " nav-child-indent" : "";
-        $classes .= $this->isLegacyNavStyle() ? " nav-legacy" : "";
-        $classes .= $this->isCompactSidebarStyle() ? " nav-compact" : "";
-        $classes .= $this->isFlatNavStyle() ? " nav-flat" : "";
+
+        $classes = "";
+
+        $classes .= !$this->indentSidebarChildren ? '' : " nav-child-indent";
+        $classes .= !$this->legacyNavStyle ? '' : " nav-legacy";
+        $classes .= !$this->compactSidebarStyle ? '' : " nav-compact";
+        $classes .= !$this->flatNavStyle ? '' : " nav-flat";
 
         return $classes;
     }
@@ -225,18 +228,15 @@ class AdminLTE
     public function getMainHeaderClasses(): string
     {
 
-        $classes = implode(" ", $this->currentNavBarSkinsBundle);
+        $classes = "";
 
-        if ($this->isNavSmallText()) {
+        $classes .= implode(" ", $this->currentNavBarSkinsBundle);
+
+        if ($this->navSmallText) {
             $classes .= " text-sm";
         }
 
         return $classes;
-    }
-
-    public function getFixedNavHeaderClass(): string
-    {
-        return $this->isFixedNavHeader() ? " layout-navbar-fixed" : "";
     }
 
     public function setNavBarSkinBundle(array $skinBundle)
@@ -255,13 +255,17 @@ class AdminLTE
 
     public function getFooterClasses(): string
     {
-        return $this->isFooterSmallText() ? 'text-sm' : "";
+        $classes = "";
+
+        $classes .= $this->footerSmallText ? ' text-sm' : '';
+
+        return $classes;
     }
 
 
     public function getBrandTextStyle(): string
     {
-        return $this->isBrandSmallText() ? 'text-sm' : "";
+        return !$this->brandSmallText ? '' : 'text-sm';
     }
 
 
@@ -277,94 +281,18 @@ class AdminLTE
 
     private function shouldFixSmallSidebarIcons(): bool
     {
-        return $this->isSidebarSmallText() || $this->isBodySmallText();
+        return $this->sidebarSmallText || $this->bodySmallText;
     }
 
-
-    /**
-     * @return bool
-     */
-    public function isFixedNavHeader(): bool
+    public function isMenuAccordion(): bool
     {
-        return Config::getGlobal('fixedNavHeader', $this->fixedNavHeader);
+        return $this->menuAccordion;
     }
 
-    /**
-     * @return bool
-     */
-    public function isBodySmallText(): bool
+    public function setMenuAccordion(bool $menuAccordion): self
     {
-        return Config::getGlobal('bodySmallText', $this->bodySmallText);
-    }
-
-    /**
-     * @return bool
-     */
-    public function isSidebarSmallText(): bool
-    {
-        return Config::getGlobal('sidebarSmallText', $this->sidebarSmallText);
-    }
-
-
-    public function isTransitionHold(): bool
-    {
-        return Config::getGlobal('holdTransition', $this->holdTransition);
-    }
-
-    /**
-     * @return bool
-     */
-    public function isNavSmallText(): bool
-    {
-        return Config::getGlobal('navSmallText', $this->navSmallText);
-    }
-
-    /**
-     * @return bool
-     */
-    public function isFooterSmallText(): bool
-    {
-        return Config::getGlobal('footerSmallText', $this->footerSmallText);
-    }
-
-    /**
-     * @return bool
-     */
-    public function isIndentSidebarChildren(): bool
-    {
-        return Config::getGlobal('indentSidebarChildren', $this->indentSidebarChildren);
-    }
-
-    /**
-     * @return bool
-     */
-    public function isLegacyNavStyle(): bool
-    {
-        return Config::getGlobal('legacyNavStyle', $this->legacyNavStyle);
-    }
-
-    /**
-     * @return bool
-     */
-    public function isCompactSidebarStyle(): bool
-    {
-        return Config::getGlobal('compactSidebarStyle', $this->compactSidebarStyle);
-    }
-
-    /**
-     * @return bool
-     */
-    public function isFlatNavStyle(): bool
-    {
-        return Config::getGlobal('flatNavStyle', $this->flatNavStyle);
-    }
-
-    /**
-     * @return bool
-     */
-    public function isBrandSmallText(): bool
-    {
-        return Config::getGlobal('brandSmallText', $this->brandSmallText);
+        $this->menuAccordion = $menuAccordion;
+        return $this;
     }
 
     /**
@@ -372,30 +300,19 @@ class AdminLTE
      */
     public function isCollapsedSidebar(): bool
     {
-        return Config::getGlobal('collapsedSidebar', $this->collapsedSidebar);
-    }
-
-
-    public function isMenuAccordion(): bool
-    {
-        return Config::getGlobal('menuAccordion', $this->menuAccordion);
+        return $this->collapsedSidebar;
     }
 
     /**
-     * @return bool
+     * @param bool $collapsedSidebar
+     * @return AdminLTE
      */
-    public function isExpandSidebarOnHover(): bool
+    public function setCollapsedSidebar(bool $collapsedSidebar): self
     {
-        return Config::getGlobal('expandSidebarOnHover', $this->expandSidebarOnHover);
+        $this->collapsedSidebar = $collapsedSidebar;
+        return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function getSidebarElevation(): string
-    {
-        return (string)Config::getGlobal('sidebarElevation', $this->sidebarElevation);
-    }
 
 
 }

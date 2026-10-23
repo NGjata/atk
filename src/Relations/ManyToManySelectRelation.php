@@ -2,7 +2,6 @@
 
 namespace Sintattica\Atk\Relations;
 
-use Exception;
 use Sintattica\Atk\Core\Config;
 use Sintattica\Atk\Core\Node;
 use Sintattica\Atk\Core\Tools;
@@ -49,7 +48,7 @@ class ManyToManySelectRelation extends ManyToManyRelation
     private $m_positionAttributeHtmlModifier;
 
 
-    public function __construct($name, $flags, $link, $destination, $local_key = null, $remote_key = null)
+    public function __construct($name, $flags = 0, $link, $destination, $local_key = null, $remote_key = null)
     {
         parent::__construct($name, $flags, $link, $destination, $local_key, $remote_key);
 
@@ -103,7 +102,7 @@ class ManyToManySelectRelation extends ManyToManyRelation
      * @param array $selectedRecords selected records
      * @param array $selectedKeys selected keys
      */
-    protected function orderSelectedRecords(array &$selectedRecords, array $selectedKeys)
+    private function orderSelectedRecords(&$selectedRecords, $selectedKeys)
     {
         $orderedRecords = [];
 
@@ -127,7 +126,6 @@ class ManyToManySelectRelation extends ManyToManyRelation
      * @param string $mode The mode we're in ('add' or 'edit')
      *
      * @return string piece of html code
-     * @throws Exception
      */
     public function edit($record, $fieldprefix, $mode)
     {
@@ -144,6 +142,8 @@ class ManyToManySelectRelation extends ManyToManyRelation
         $page->register_script($assetUrl . 'javascript/manytomanyselectrelation.js');
         $id = $this->getHtmlId($fieldprefix);
         $selectId = "{$id}_selection";
+        $addLink = '';
+
         $selectedKeys = $this->getSelectedKeys($record, $id);
 
         $selectedRecords = [];
@@ -153,39 +153,35 @@ class ManyToManySelectRelation extends ManyToManyRelation
             $this->orderSelectedRecords($selectedRecords, $selectedKeys);
         }
 
-        // Post an empty value if none selected (instead of not posting anything)
-        $result = '<input type="hidden" name="' . $this->getHtmlName($fieldprefix) . '" value="" />';
-        $result .= '<div class="atkmanytomanyselectrelation">';
+        $result = '<input type="hidden" name="' . $this->getHtmlName($fieldprefix) . '" value="" />' .// Post an empty value if none selected (instead of not posting anything)
+            '<div class="atkmanytomanyselectrelation">';
 
-        // "Add" button
         if (($this->hasFlag(self::AF_MANYTOMANYSELECT_DETAILADD)) && ($this->m_destInstance->allowed('add'))) {
-            $result .= ' ' . $this->getAddActionLink($record, $fieldprefix);
+            $addLink = ' ' . $this->getAddActionLink($record, $fieldprefix);
         }
 
-        // select to add existing record
-        $addField = $this->renderAdditionField($record, $fieldprefix, $mode);
-        if ($addField) {
-            $result .= '<div style="width: 100%;float:left">';
-            $result .= '<div class="atkmanytomanyselectrelation-addition">' . $addField . '</div>';
-            $result .= '</div>';
-        }
-
-        // selected records
-        $selectedRecordsField = '';
+        $selField = '';
         foreach ($selectedRecords as $selectedRecord) {
-            $selectedRecordsField .= $this->renderSelectedRecord($selectedRecord, $fieldprefix);
+            $selField .= $this->renderSelectedRecord($selectedRecord, $fieldprefix);
         }
+        $addField = $this->renderAdditionField($record, $fieldprefix, $mode);
 
-        if ($selectedRecordsField) {
-            $result .= '<div id="' . $selectId . '" class="atkmanytomanyselectrelation-selection row justify-content-center">';
-            $result .= $selectedRecordsField;
-            $result .= '</div>';
-
+        if ($selField || $addField) {
+            $result .= '<ul id="' . $selectId . '" class="atkmanytomanyselectrelation-selection" style="padding:0">';
+            $result .= $selField;
+            if ($addField) {
+                $result .= '<li class="atkmanytomanyselectrelation-addition" style="list-style: none;">' . $addField . '</li>';
+            }
+            $result .= '</ul>';
         } else {
-            $result .= '<i>' . $this->text('none') . '</i>';
+            if (!$addLink) {
+                $addLink = '<i>' . $this->text('none') . '</i>';
+            }
         }
 
-        $result .= '</div>'; // close atkmanytomanyselectrelation
+        $result .= $addLink;
+
+        $result .= '</div>';
 
         if ($this->hasPositionAttribute()) {
             $this->getOwnerInstance()->getPage()->register_loadscript("ATK.ManyToManySelectRelation.makeItemsSortable('{$selectId}');");
@@ -203,7 +199,7 @@ class ManyToManySelectRelation extends ManyToManyRelation
      *
      * @return array of selected keys in the order they were submitted
      */
-    public function getSelectedKeys(array $record, string $id, $enforceUnique = true): array
+    public function getSelectedKeys($record, $id, $enforceUnique = true)
     {
         // Get Existing selected records
         $selectedKeys = $this->getSelectedRecords($record);
@@ -234,7 +230,6 @@ class ManyToManySelectRelation extends ManyToManyRelation
      * @param string $mode load mode
      *
      * @return array values
-     * @throws Exception
      */
     public function load($db, $record, $mode)
     {
@@ -250,7 +245,7 @@ class ManyToManySelectRelation extends ManyToManyRelation
     }
 
     /**
-     * Perform the "create action" on a record that is new.
+     * Perform the create action on a record that is new.
      *
      * @param array $selectedKey the selected keys
      * @param array $selectedRecord the selected record
@@ -271,7 +266,7 @@ class ManyToManySelectRelation extends ManyToManyRelation
     }
 
     /**
-     * Perform the "update action" on a record that's been changed.
+     * Perform the update action on a record that's been changed.
      *
      * @param array $record the record that has been changed
      * @param int $index the index of the item in the set
@@ -304,7 +299,7 @@ class ManyToManySelectRelation extends ManyToManyRelation
      *
      * @return string
      */
-    protected function renderSelectedRecord(array $record, string $fieldprefix): string
+    protected function renderSelectedRecord($record, $fieldprefix)
     {
         $name = $this->getHtmlName($fieldprefix) . '[][' . $this->getRemoteKey() . ']';
         $key = $record[$this->getDestination()->primaryKeyField()];
@@ -313,23 +308,25 @@ class ManyToManySelectRelation extends ManyToManyRelation
         $descriptor = nl2br(htmlentities($this->getDestination()->descriptor($record)));
 
         // Build the record
-        // atkmanytomanyselectrelation-selected is used as selector when "remove" button is clicked
-        return '<div class="atkmanytomanyselectrelation-selected mx-2">
-                    <input type="hidden" name="' . $name . '" value="' . htmlentities($key) . '"/>
-                    <div class="card pb-2" style="width: 150px">
-                        <div class="card-body text-center p-2">' . $descriptor . '</div>
-                        <div class="card-actions d-flex justify-content-center">' . $this->renderSelectedRecordActions($record) . '</div>
-                    </div>
-                </div>';
+        $result = '
+      <li class="atkmanytomanyselectrelation-selected" style="list-style: none">
+      <input type="hidden" name="' . $name . '" value="' . htmlentities($key) . '"/>
+      <span>' . $descriptor . '</span>
+      ' . $this->renderSelectedRecordActions($record) . '
+      </li>
+      ';
+
+        return $result;
     }
 
-    /**
+    /*
      * Renders the action links for a given record
      *
      * @param array $record is the selected record
      * @return string the actions in their html link form
      */
-    protected function renderSelectedRecordActions(array $record): string
+
+    protected function renderSelectedRecordActions($record)
     {
         $actions = [];
 
@@ -349,6 +346,7 @@ class ManyToManySelectRelation extends ManyToManyRelation
 
         // Call the renderButton action for those actions
         $actionLinks = [];
+        $actionLink = null;
         foreach ($actions as $action) {
             $actionLink = $this->getActionLink($action, $record);
             if ($actionLink != null) {
@@ -358,7 +356,7 @@ class ManyToManySelectRelation extends ManyToManyRelation
 
         $htmlActionLinks = '';
         if (Tools::count($actionLinks)) {
-            $htmlActionLinks = implode(' ', $actionLinks);
+            $htmlActionLinks = '&nbsp;' . implode(' ', $actionLinks);
         }
 
         return $htmlActionLinks;
@@ -372,7 +370,7 @@ class ManyToManySelectRelation extends ManyToManyRelation
      *
      * @return string
      */
-    protected function getActionLink(string $action, array $record): string
+    protected function getActionLink($action, $record)
     {
         $actionMethod = "get{$action}ActionLink";
 
@@ -381,58 +379,56 @@ class ManyToManySelectRelation extends ManyToManyRelation
         } else {
             Tools::atkwarning('Missing ' . $actionMethod . ' method on manytomanyselectrelation. ');
         }
-        return '';
     }
 
-    /**
-     * The default add link.
-     *
-     * @param array $record
-     * @param string $fieldprefix
-     * @param array $params
-     * @return string
-     */
-    protected function getAddActionLink(array $record, string $fieldprefix, array $params = []): string
+    protected function getAddActionLink($record, $fieldprefix, $params = array())
     {
         $filter = $this->parseFilter($this->getManyToOneRelation()->m_destinationFilter, $record);
-        $params = array_merge($params, ['atkfilter' => $filter, 'atkpkret' => $this->getHtmlId($fieldprefix) . '_newsel']);
-        $url = Tools::dispatch_url($this->getDestination()->atkNodeUri(), 'add', $params);
-        return Tools::href($url, $this->getAddLabel(), SessionManager::SESSION_NESTED, true, 'class="atkmanytomanyselectrelation-link btn btn-sm btn-default mx-1"');
-    }
+        $params = array_merge($params, array('atkfilter' => $filter, 'atkpkret' => $this->getHtmlId($fieldprefix) . '_newsel'));
+        $link = Tools::href(Tools::dispatch_url($this->m_destination, 'add', $params), $this->getAddLabel(), SessionManager::SESSION_NESTED, true,
+            'class="atkmanytomanyselectrelation-link"');
 
-    /**
-     * The default view link.
-     *
-     * @param array $record
-     * @return string
-     */
-    protected function getViewActionLink(array $record): string
-    {
-        $url = Tools::dispatch_url($this->getDestination()->atkNodeUri(), 'view', [Node::PARAM_ATKSELECTOR => $this->getDestination()->primaryKey($record)]);
-        return Tools::href($url, $this->text('view'), SessionManager::SESSION_NESTED, true, 'class="atkmanytomanyselectrelation-link btn btn-sm btn-default mx-1"');
+        return $link;
     }
 
     /**
      * The default edit link.
      *
      * @param array $record
+     *
      * @return string
      */
-    protected function getEditActionLink(array $record): string
+    protected function getEditActionLink($record)
     {
-        $url = Tools::dispatch_url($this->getDestination()->atkNodeUri(), 'edit', [Node::PARAM_ATKSELECTOR => $this->getDestination()->primaryKey($record)]);
-        return Tools::href($url, $this->text('edit'), SessionManager::SESSION_NESTED, true, 'class="atkmanytomanyselectrelation-link btn btn-sm btn-warning mx-1"');
+        return Tools::href(Tools::dispatch_url($this->getDestination()->atkNodeUri(), 'edit',
+            array('atkselector' => $this->getDestination()->primaryKey($record))), $this->text('edit'), SessionManager::SESSION_NESTED, true,
+            'class="atkmanytomanyselectrelation-link"');
     }
 
     /**
-     * The default delete link to remove the relation, not the record itself
+     * The default view link.
      *
      * @param array $record
+     *
      * @return string
      */
-    protected function getDeleteActionLink(array $record): string
+    protected function getViewActionLink($record)
     {
-        return '<a href="javascript:void(0)" class="atkmanytomanyselectrelation-link btn btn-sm btn-danger mx-1" onclick="ATK.ManyToManySelectRelation.deleteItem(this); return false;">' . $this->text('remove') . '</a>';
+        return Tools::href(Tools::dispatch_url($this->getDestination()->atkNodeUri(), 'view',
+            array('atkselector' => $this->getDestination()->primaryKey($record))), $this->text('view'), SessionManager::SESSION_NESTED, true,
+            'class="atkmanytomanyselectrelation-link"');
+    }
+
+    /**
+     * The default delete link.
+     *
+     * @param array $record
+     *
+     * @return string
+     */
+    protected function getDeleteActionLink($record)
+    {
+        return '<a href="javascript:void(0)" class="atkmanytomanyselectrelation-link" onclick="ATK.ManyToManySelectRelation.deleteItem(this); return false;">' . $this->text('remove') . '</a>';
     }
 
     /**
@@ -456,20 +452,20 @@ class ManyToManySelectRelation extends ManyToManyRelation
      * @param string $mode
      *
      * @return string
-     * @throws Exception
      */
-    protected function renderAdditionField(array $record, string $fieldprefix, string $mode): string
+    protected function renderAdditionField($record, $fieldprefix, $mode)
     {
         if ($this->getLink()->hasFlag(Node::NF_NO_ADD)) {
             return '';
         }
 
-        $url = Tools::partial_url($this->getOwnerInstance()->atkNodeUri(), $mode, 'attribute.' . $this->fieldName() . '.selectedrecord', ['fieldprefix' => $fieldprefix]);
+        $url = Tools::partial_url($this->getOwnerInstance()->atkNodeUri(), $mode, 'attribute.' . $this->fieldName() . '.selectedrecord',
+            array('fieldprefix' => $fieldprefix));
 
         $relation = $this->getManyToOneRelation();
 
         $hasPositionAttribute = $this->hasPositionAttribute() ? 'true' : 'false';
-        $relation->addOnChangeHandler("ATK.ManyToManySelectRelation.add(el, '$url', $hasPositionAttribute);");
+        $relation->addOnChangeHandler("ATK.ManyToManySelectRelation.add(el, '{$url}', {$hasPositionAttribute});");
 
         $relation->setNoneLabel($this->text('select_none_obligatory'));
         unset($record[$relation->fieldName()]);
@@ -502,7 +498,8 @@ class ManyToManySelectRelation extends ManyToManyRelation
     }
 
     /**
-     * Set the searchfields for the autocompletion. By default, the descriptor fields are used.
+     * Set the searchfields for the autocompletion. By default the
+     * descriptor fields are used.
      *
      * @param array $searchFields
      */
@@ -551,30 +548,30 @@ class ManyToManySelectRelation extends ManyToManyRelation
      */
     public function setDestinationFilter($filter)
     {
-        $this->getManyToOneRelation()->setDestinationFilter($filter);
+        return $this->getManyToOneRelation()->setDestinationFilter($filter);
     }
 
     /**
-     * Set the positional attribute/column of the many-to-many join. It is the column
+     * Set the positional attribute/column of the many to many join. It is the column
      * in the join table that denotes the position of the item in the set.
      *
      * @param string $attr the position attribute/column name of the join
-     * @param string|null $htmlIdentifier is the html string to add to the end of the label.
+     * @param string $htmlIdentifier is the html string to add to the end of the label.
      *                               Defaults to an up down image.
      */
-    public function setPositionAttribute(string $attr, string $htmlIdentifier = null)
+    public function setPositionAttribute($attr, $htmlIdentifier = null)
     {
         $this->m_positionAttribute = $attr;
         $this->m_positionAttributeHtmlModifier = $htmlIdentifier;
     }
 
     /**
-     * Get the positional attribute of the many-to-many join. It is the column
+     * Get the positional attribute of the many to many join. It is the column
      * in the join table that denotes the position of the item in the set.
      *
      * @return string the position column name of the join
      */
-    public function getPositionAttribute(): ?string
+    public function getPositionAttribute()
     {
         return $this->m_positionAttribute;
     }
@@ -584,7 +581,7 @@ class ManyToManySelectRelation extends ManyToManyRelation
      *
      * @return bool true if the position attribute has been set
      */
-    public function hasPositionAttribute(): bool
+    public function hasPositionAttribute()
     {
         return $this->getPositionAttribute() != null;
     }

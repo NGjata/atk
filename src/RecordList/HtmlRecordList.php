@@ -11,7 +11,7 @@ use Sintattica\Atk\Core\Node;
  */
 class HtmlRecordList extends CustomRecordList
 {
-    public $exportCSV = true;
+    public $m_exportcsv = true;
 
     /**
      * Creates a special Recordlist that can be used for exporting to files or to make it printable.
@@ -28,30 +28,16 @@ class HtmlRecordList extends CustomRecordList
      * @return string
      */
     public function render(
-        &$node,
+        $node,
         $recordset,
         $compression = '',
         $suppressList = [],
         $outputparams = [],
         $titlerow = true,
-        $decode = false
+        $decode = false,
+        ...$unused // keeps the signature compatible with CustomRecordList::render() under PHP 8
     ) {
-        return parent::render(
-            $node,
-            $recordset,
-            '<tr>',
-            '<td>',
-            '</td>',
-            "<tr>\n",
-            '0',
-            $compression,
-            $suppressList,
-            $outputparams,
-            'list',
-            $titlerow,
-            $decode,
-            '',
-            '<br>'
-        );
+        return parent::render($node, $recordset, '<tr>', '<td>', '</td>', "<tr>\n", '0', $compression, $suppressList, $outputparams, 'list', $titlerow, $decode,
+            '', '<br>');
     }
 }

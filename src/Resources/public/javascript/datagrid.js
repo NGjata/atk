@@ -9,11 +9,8 @@ ATK.DataGrid = {
      */
     register: function (name, baseUrl, embedded) {
         ATK.DataGrid.grids[name] = {
-            name: name,
-            baseUrl: baseUrl,
-            embedded: embedded,
-            locked: false,
-            updateCompletedListeners: []
+            name: name, baseUrl: baseUrl, embedded: embedded,
+            locked: false, updateCompletedListeners: []
         };
         ATK.DataGrid.updateScroller(name);
     },
@@ -50,11 +47,11 @@ ATK.DataGrid = {
     /**
      * Updates/refreshes the data grid with the given name.
      *
-     * All current parameter values will be applied, except the ones overridden
+     * All current parameter values will be applied, except the ones overriden
      * by the overrides.
      */
     update: function (name, plainOverrides, jsOverrides, jsCallback) {
-        const grid = ATK.DataGrid.get(name);
+        var grid = ATK.DataGrid.get(name);
 
         // prevent multiple updates to the same grid at once
         if (grid.locked) {
@@ -66,20 +63,20 @@ ATK.DataGrid = {
         ATK.DataGrid.getContainer(name).fadeTo(0, 0.5);
 
         // overrides
-        let overrides = jQuery.extend(plainOverrides, jsOverrides);
+        var overrides = jQuery.extend(plainOverrides, jsOverrides);
         if (jsCallback !== null && jsCallback !== undefined) {
             overrides = jQuery.extend(overrides, jsCallback(name));
         }
 
         // convert overrides to query components
-        const queryComponents = [];
+        var queryComponents = [];
 
         jQuery.each(overrides, function (k, v) {
-            const key = 'atkdg_AE_' + grid.name + '_AE_' + k;
-            let queryComponent;
+            var key = 'atkdg_AE_' + grid.name + '_AE_' + k;
+            var queryComponent;
 
             if (jQuery.isArray(v) && v.length > 0) {
-                for (let i = 0; i < v.length; i++) {
+                for (var i = 0; i < v.length; i++) {
                     queryComponent = encodeURIComponent(key) + '=' + encodeURIComponent(v[i]);
                     queryComponents.push(queryComponent);
                 }
@@ -91,12 +88,12 @@ ATK.DataGrid = {
 
 
         if (grid.embedded) {
-            const elements = ATK.DataGrid.getForm(grid.name).find(':input');
-            elements.each(function (index, el) {
-                const $el = jQuery(el);
-                const name = $el.attr('name');
+            var elements = ATK.DataGrid.getForm(grid.name).find(':input');
+            elements.each(function(index, el){
+                var $el = jQuery(el);
+                var name = $el.attr('name');
                 if (name && name.substring(0, 3) !== 'atk') {
-                    const queryComponent = $el.serialize();
+                    var queryComponent = $el.serialize();
                     if (queryComponent) {
                         queryComponents.push(queryComponent);
                     }
@@ -106,7 +103,7 @@ ATK.DataGrid = {
 
         queryComponents.push('atkdatagrid=' + encodeURIComponent(name));
 
-        jQuery.post(grid.baseUrl, queryComponents.join('&'), function (data) {
+        jQuery.post(grid.baseUrl, queryComponents.join('&'), function(data){
             ATK.DataGrid.getContainer(name).html(data);
             ATK.DataGrid.updateCompleted(name);
         });
@@ -135,12 +132,12 @@ ATK.DataGrid = {
      * the strings we are searching for are pretty unique within a form.
      */
     extractOverrides: function (name, needle) {
-        const overrides = {};
+        var overrides = {};
 
         ATK.DataGrid.getElements(name).each(function (index, el) {
-            const $el = jQuery(el);
-            const name = $el.attr('name');
-            let v;
+            var $el = jQuery(el);
+            var name = $el.attr('name');
+            var v;
             if (name !== undefined && name.indexOf(needle) >= 0) {
                 v = $el.val() === null ? [] : $el.val();
                 overrides[name] = v;
@@ -167,15 +164,15 @@ ATK.DataGrid = {
      * Save a datagrid which is in edit mode.
      */
     save: function (name, url) {
-        const prefix = 'atkdatagriddata_AE_';
-        const elements = ATK.DataGrid.getElements(name);
-        const queryComponents = [];
+        var prefix = 'atkdatagriddata_AE_';
+        var elements = ATK.DataGrid.getElements(name);
+        var queryComponents = [];
 
-        elements.each(function (index, el) {
-            const $el = jQuery(el);
-            const name = $el.attr('name');
-            if (name && name.substring(0, prefix.length) === prefix) {
-                const queryComponent = $el.serialize();
+        elements.each(function(index, el){
+            var $el = jQuery(el);
+            var name = $el.attr('name');
+            if(name && name.substring(0, prefix.length) === prefix){
+                var queryComponent = $el.serialize();
                 if (queryComponent) {
                     queryComponents.push(queryComponent);
                 }
@@ -188,27 +185,38 @@ ATK.DataGrid = {
         });
     },
     updateScroller: function (name) {
-        const container = jQuery(ATK.DataGrid.getContainer(name));
-        const recordListScroller = container.find('.recordListScroller');
-
+        var container = jQuery(ATK.DataGrid.getContainer(name));
+        var recordListScroller = container.find('.recordListScroller');
         if (recordListScroller.length) {
-            const recordListContent = container.find('.recordListContent'); //element that contains the div to be scrolled
-            const scrollWidth = recordListContent.get(0).scrollWidth; //scroller width (full width)
-            const clientWidth = recordListContent.get(0).clientWidth; //viewport width
+            var recordListContainer = container.find('.recordListContainer');
+            var scroller = recordListScroller.find('.scroller');
+            var scrollWidth = recordListContainer.get(0).scrollWidth;
+            var clientWidth = recordListContainer.get(0).clientWidth;
+            var datagridList = container.find('.datagrid-list');
 
-            recordListScroller.find('.scroller').width(scrollWidth);
-
+            scroller.width(scrollWidth);
             if (scrollWidth <= clientWidth) {
                 recordListScroller.hide();
+                datagridList.css('margin-top', 0);
             } else {
                 recordListScroller.show();
-                recordListScroller.scroll(() => recordListContent.scrollLeft(recordListScroller.scrollLeft()));
-                recordListContent.scroll(() => ATK.Tools.debounce(recordListScroller.scrollLeft(recordListContent.scrollLeft()), 50));
+                datagridList.css('margin-top', '-15px');
+
+                var scrollTimeoutId;
+                recordListScroller.scroll(function () {
+                    recordListContainer.scrollLeft(recordListScroller.scrollLeft())
+                });
+                recordListContainer.scroll(function () {
+                    clearTimeout(scrollTimeoutId);
+                    scrollTimeoutId = setTimeout(function () {
+                        recordListScroller.scrollLeft(recordListContainer.scrollLeft());
+                    }, 50);
+                });
             }
         }
     },
     updateAllScrollers: function () {
-        jQuery.each(ATK.DataGrid.grids, function (key) {
+        jQuery.each(ATK.DataGrid.grids, function(key){
             ATK.DataGrid.updateScroller(key);
         });
     }
@@ -218,7 +226,7 @@ jQuery(window).on('resize', ATK.Tools.debounce(ATK.DataGrid.updateAllScrollers, 
 
 jQuery(function () {
     jQuery(document).on('keypress', '.atkdatagrid-container .recordListSearch input[type="text"]', function (e) {
-        let bt;
+        var bt;
         if ((e.which && e.which === 13) || (e.keyCode && e.keyCode === 13)) {
             e.preventDefault();
             bt = jQuery(e.currentTarget).parent('.recordListSearch').parent('tr').find('.btn_search');

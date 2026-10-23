@@ -1,7 +1,6 @@
 <?php
 
 namespace Sintattica\Atk\Db;
-
 use Sintattica\Atk\Core\Tools;
 
 /**
@@ -28,8 +27,7 @@ class PgSqlQuery extends Query
         } else {
             $join = 'JOIN ';
         }
-        $this->m_joins[] = ' ' . $join . $table . ' ' . $alias . ' ON ' . $condition . ' ';
-        return $this;
+        $this->m_joins[] = ' '.$join.$table.' '.$alias.' ON '.$condition.' ';
     }
 
     /**
@@ -41,7 +39,7 @@ class PgSqlQuery extends Query
     public function _addLimiter(&$query)
     {
         if ($this->m_offset >= 0 && $this->m_limit > 0) {
-            $query .= ' LIMIT ' . $this->m_limit . ' OFFSET ' . $this->m_offset;
+            $query .= ' LIMIT '.$this->m_limit.' OFFSET '.$this->m_offset;
         }
     }
 
@@ -56,7 +54,9 @@ class PgSqlQuery extends Query
      */
     public function buildCount($distinct = false)
     {
-        return 'SELECT COUNT(*) AS count FROM (' . $this->buildSelect($distinct) . ') x';
+        $query = 'SELECT COUNT(*) AS count FROM ('.$this->buildSelect($distinct).') x';
+
+        return $query;
     }
 
     /**
@@ -71,14 +71,14 @@ class PgSqlQuery extends Query
     {
         if ($this->getDb()->getForceCaseInsensitive()) {
             if ($value[0] == '!') {
-                return $field . " NOT ILIKE '%" . substr($value, 1, Tools::atk_strlen($value)) . "%'";
+                return $field." NOT ILIKE '%".substr($value, 1, Tools::atk_strlen($value))."%'";
             }
-            return $field . " ILIKE '%" . $value . "%'";
+            return $field." ILIKE '%".$value."%'";
         } else {
             if ($value[0] == '!') {
-                return $field . " NOT LIKE '%" . substr($value, 1, Tools::atk_strlen($value)) . "%'";
+                return $field." NOT LIKE '%".substr($value, 1, Tools::atk_strlen($value))."%'";
             }
-            return $field . " LIKE '%" . $value . "%'";
+            return $field." LIKE '%".$value."%'";
         }
     }
 
@@ -92,14 +92,14 @@ class PgSqlQuery extends Query
     {
         if ($this->getDb()->getForceCaseInsensitive()) {
             if ($value[0] == '!') {
-                return $field . " NOT ILIKE '" . str_replace('*', '%', substr($value, 1, Tools::atk_strlen($value))) . "'";
+                return $field." NOT ILIKE '".str_replace('*', '%', substr($value, 1, Tools::atk_strlen($value)))."'";
             }
-            return $field . " ILIKE '" . str_replace('*', '%', $value) . "'";
+            return $field." ILIKE '".str_replace('*', '%', $value)."'";
         } else {
             if ($value[0] == '!') {
-                return $field . " NOT LIKE '" . str_replace('*', '%', substr($value, 1, Tools::atk_strlen($value))) . "'";
+                return $field." NOT LIKE '".str_replace('*', '%', substr($value, 1, Tools::atk_strlen($value)))."'";
             }
-            return $field . " LIKE '" . str_replace('*', '%', $value) . "'";
+            return $field." LIKE '".str_replace('*', '%', $value)."'";
         }
     }
 
@@ -108,14 +108,5 @@ class PgSqlQuery extends Query
         $value = $value ? 'true' : 'false';
 
         return "$field = $value";
-    }
-
-    public function addSequenceField($fieldName, &$value, $seqName = null)
-    {
-        if ($seqName) {
-            $seqName .= '_' . $fieldName;
-        }
-
-        return parent::addSequenceField($fieldName, $value, $seqName);
     }
 }

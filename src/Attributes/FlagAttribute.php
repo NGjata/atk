@@ -21,7 +21,7 @@ class FlagAttribute extends MultiSelectAttribute
      * @param array $valueArray Array with values. If you don't use this parameter,
      *                            values are assumed to be the same as the options.
      */
-    public function __construct($name, $flags, $optionArray, $valueArray = null)
+    public function __construct($name, $flags = 0, $optionArray, $valueArray = null)
     {
         parent::__construct($name, $flags, $optionArray, $valueArray);
         $this->m_dbfieldtype = 'number';
@@ -31,43 +31,42 @@ class FlagAttribute extends MultiSelectAttribute
      * Converts the internal attribute value to one that is understood by the
      * database.
      *
-     * @param array $record The record that holds this attribute's value.
+     * @param array $rec The record that holds this attribute's value.
      *
      * @return string The database compatible value
      */
-    public function value2db(array $record)
+    public function value2db(array $rec)
     {
-        if (is_array($record[$this->fieldName()]) && Tools::count($record[$this->fieldName()]) >= 1) {
+        if (is_array($rec[$this->fieldName()]) && Tools::count($rec[$this->fieldName()]) >= 1) {
             $flags = 0;
-            foreach ($record[$this->fieldName()] as $flag) {
+            foreach ($rec[$this->fieldName()] as $flag) {
                 $flags |= $flag;
             }
 
             return $flags;
-
+        } else {
+            return 0;
         }
-
-        return 0;
     }
 
     /**
      * Converts a database value to an internal value.
      *
-     * @param array $record The database record that holds this attribute's value
+     * @param array $rec The database record that holds this attribute's value
      *
      * @return mixed The internal value
      */
-    public function db2value($record)
+    public function db2value($rec)
     {
-        if ($record[$this->fieldName()] > 0) {
-            $newRecord = [];
+        if ($rec[$this->fieldName()] > 0) {
+            $newrec = [];
             foreach ($this->m_values as $value) {
-                if (Tools::hasFlag($record[$this->fieldName()], $value)) {
-                    $newRecord[] = $value;
+                if (Tools::hasFlag($rec[$this->fieldName()], $value)) {
+                    $newrec[] = $value;
                 }
             }
 
-            return $newRecord;
+            return $newrec;
         }
 
         return [];
@@ -126,9 +125,9 @@ class FlagAttribute extends MultiSelectAttribute
      * @param array $postvars The array with html posted values ($_POST, for
      *                        example) that holds this attribute's value.
      *
-     * @return array|string The internal value
+     * @return string The internal value
      */
-    public function fetchValue($postvars): array|string
+    public function fetchValue($postvars)
     {
         $vars = Tools::atkArrayNvl($postvars, $this->fieldName());
         if (!is_array($vars)) {

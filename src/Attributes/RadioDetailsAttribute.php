@@ -50,7 +50,7 @@ class RadioDetailsAttribute extends Attribute
      *                        the key should be the option value and the value
      *                        should be the attribute name
      */
-    public function __construct($name, $flags, $options, $details)
+    public function __construct($name, $flags = 0, $options, $details)
     {
         parent::__construct($name, $flags);
 
@@ -126,7 +126,7 @@ class RadioDetailsAttribute extends Attribute
         return $result;
     }
 
-    public function display(array $record, string $mode): string
+    public function display($record, $mode)
     {
         $value = $record[$this->fieldName()];
         $options = array_flip($this->m_options);

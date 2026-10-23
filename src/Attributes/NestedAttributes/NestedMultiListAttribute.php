@@ -4,21 +4,17 @@
 namespace Sintattica\Atk\Attributes\NestedAttributes;
 
 
-use Exception;
-use Sintattica\Atk\Attributes\MultiListAttribute;
+use App\Atk\Modules\App\Attributes\MultiListAttribute;
 use Sintattica\Atk\Core\Tools;
 use Sintattica\Atk\Db\Query;
 
-class NestedMultiListAttribute extends MultiListAttribute implements NestedAttributeInterface
+class NestedMultiListAttribute extends MultiListAttribute
 {
 
-    /**
-     * @throws Exception
-     */
-    function __construct($name, $flags, string $nestedAttributeField, $optionArray, $valueArray = null)
+    function __construct($name, $flags, $optionArray, $valueArray = null)
     {
-        $this->setNestedAttributeField($nestedAttributeField);
-        parent::__construct($name, $flags | parent::AF_NO_SORT, $optionArray, $valueArray);
+        $this->setIsNestedAttribute(true);
+        parent::__construct($name, $flags | self::AF_NO_SORT, $optionArray, $valueArray);
     }
 
     /**
@@ -33,13 +29,13 @@ class NestedMultiListAttribute extends MultiListAttribute implements NestedAttri
      */
     public function getSearchCondition(Query $query, $table, $value, $searchmode, $fieldname = '')
     {
-        if (!$this->getOwnerInstance()->hasNestedAttribute($this->fieldName(), $this->getNestedAttributeField())) {
+        if (!$this->getOwnerInstance()->isNestedAttribute($this->fieldName())) {
             return parent::getSearchCondition($query, $table, $value, $searchmode, $fieldname);
         }
 
         // Multiselect attribute has only 1 searchmode, and that is substring.
 
-        $searchconditions = [];
+        $searchconditions = array();
         $field_sql = NestedAttribute::buildJSONExtractValue($this, $table);
 
         if (is_array($value) && $value[0] != "" && count($value) > 0) {
@@ -48,10 +44,10 @@ class NestedMultiListAttribute extends MultiListAttribute implements NestedAttri
                 return $query->nullCondition($field_sql, true);
             }
             if (count($value) == 1) {
-                $searchconditions[] = $query->substringCondition($field_sql, Tools::escapeSQL($this->m_fieldSeparator . $value[0] . $this->m_fieldSeparator));
+                $searchconditions[] = $query->substringCondition($field_sql, Tools::escapeSQL($this->m_fieldSeparator.$value[0].$this->m_fieldSeparator));
             } else {
                 foreach ($value as $str) {
-                    $searchconditions[] = $query->substringCondition($field_sql, Tools::escapeSQL($this->m_fieldSeparator . $str . $this->m_fieldSeparator));
+                    $searchconditions[] = $query->substringCondition($field_sql, Tools::escapeSQL($this->m_fieldSeparator.$str.$this->m_fieldSeparator));
                 }
             }
         }

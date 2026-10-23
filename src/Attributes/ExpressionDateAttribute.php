@@ -2,32 +2,30 @@
 
 namespace Sintattica\Atk\Attributes;
 
-use Sintattica\Atk\Core\Node;
-
 /**
  * Class ExpressionDateAttribute
  */
 class ExpressionDateAttribute extends ExpressionAttribute
 {
-    /** @var DateAttribute $m_dateAttribute useful for search and display */
+    /** @var DateAttribute $m_dateAttribute useful for search and display
+     */
     protected $m_dateAttribute;
 
     function __construct($name, $flags, $expression, $dateAttribute = null)
     {
-        parent::__construct($name, $flags, $expression, 'date');
+        parent::__construct($name, $flags, $expression, 'string');
 
         $this->m_dateAttribute = $dateAttribute ?: new DateAttribute($this->fieldName());
     }
 
-    function setOwnerInstance(Node $instance): static
+    function setOwnerInstance($instance)
     {
         parent::setOwnerInstance($instance);
 
         $this->m_dateAttribute->setOwnerInstance($this->m_ownerInstance);
-        return $this;
     }
 
-    public function display(array $record, string $mode): string
+    function display($record, $mode)
     {
         if (!$record[$this->fieldName()]) {
             return '';

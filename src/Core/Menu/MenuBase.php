@@ -4,22 +4,19 @@ namespace Sintattica\Atk\Core\Menu;
 
 use Exception;
 use ReflectionException;
-use Sintattica\Atk\AdminLte\UIStateColors;
 use Sintattica\Atk\Core\AdminLTE;
-use Sintattica\Atk\Core\Atk;
-use Sintattica\Atk\Core\Node;
 use Sintattica\Atk\Core\Tools;
 use Sintattica\Atk\Security\SecurityManager;
 use Sintattica\Atk\Session\SessionManager;
 use Sintattica\Atk\Ui\Page;
 use Sintattica\Atk\Ui\SmartyProvider;
-use Sintattica\Atk\Utils\NodeUtils;
+use SmartyException;
 
 abstract class MenuBase
 {
-    public const ICON_ADMIN = 'fa-solid fa-list';
-    public const ICON_ADD = 'fa-solid fa-plus-circle';
-    public const ICON_LOGOUT = 'fa-solid fa-sign-out-alt';
+
+    public const ICON_ADMIN = 'fas fa-list';
+    public const ICON_ADD = 'fas fa-plus-circle';
 
     public const MENU_SIDEBAR = 'sidebar';
     public const MENU_NAV_LEFT = 'left';
@@ -30,57 +27,54 @@ abstract class MenuBase
 
     public const ATK_MENU_USERNAME_PREFIX = 'atk_menu_username_prefix';
 
-    // All menu items (sidebar and navbar)
+    //All menu items (sidebar and navbar)
     private $items = [];
     private $menu = [];
 
     private $m_adminLte;
 
+    //-------- Sidebar Menu  ------------
+    //The submenu works by exploring all the children and then appending data from bottom up.
 
-    private $atk;
-
-    // -------- Sidebar Menu  ------------
-    // The submenu works by exploring all the children and then appending data from bottom up.
-
-    // 1) If the item has no children then it will be formatted as a simple item (formatSimpleItemSidebar)
-    // where it can have a link or can be text only.
-    // 2) If the item has subitems it will be classified as a complex menu
+    //1) If the item has no children then it will be formatted as a simple item (formatSimpleItemSidebar)
+    //where it can have a link or can be text only.
+    //2) If the item has subitems it will be classified as a complex menu
     //      -> the two vars $formatSubmenuParentSidebar and $formatSubmenuChildSidebar are needed
-    //    The recursive call sets up a variable called $childs that takes into account if we are on the root father
-    //    that has subitems or a child that has subitems and depending from that decides to format:
+    //   The recursive call sets up a variable called $childs that takes into account if we are on the root father
+    //   that has subitems or a child that has subitems and depending from that decides to format:
     //      a) If top level father -> $formatSubmenuParentSidebar will be used
     //      b) If a child of the top level father -> $formatSubmenuChildSidebar will be used.
-    // NB: The recursive call is working on dfs mode:
+    //NB: The recursive call is working on dfs mode:
     //    1) Get the data from htmlItems
     //    2) Format in the following mode: Children -> SubmenuChildSidebar -> SubMenuParentSidebar
     //       Including the html in each step.
     //    3) Return a string that contains all the formatted sidebar menus.
 
-    // These variables should be itended as formatting templates
+    //These variables should be itended as formatting templates
 
-    // -------- Sidebar Menu  ------------
+    //-------- Sidebar Menu  ------------
     private const SIDEBAR_PARENT_ITEM_TPL = "menu/sidebar/parent_item.tpl";
     private const SIDEBAR_CHILD_ITEM_TPL = "menu/sidebar/child_item.tpl";
     private const SIDEBAR_HEADER_ITEM_TPL = "menu/sidebar/header_item.tpl";
     private const SIDEBAR_SEPARATOR_ITEM_TPL = "menu/sidebar/separator_item.tpl";
 
-    // Icons from Font Awesome
-    private const DEFAULT_SIDEBAR_PARENT_ITEM_ICON = 'fa-regular fa-circle';
-    private const DEFAULT_SIDEBAR_CHILD_ITEM_ICON = 'fa-solid fa-th';
+    //Icons from Font Awesome
+    private const DEFAULT_SIDEBAR_PARENT_ITEM_ICON = 'far fa-circle';
+    private const DEFAULT_SIDEBAR_CHILD_ITEM_ICON = 'fas fa-th';
 
-    // -------- Navbar Menu  ------------
+    //-------- Navbar Menu  ------------
     private const NAVBAR_PARENT_ITEM_TPL = 'menu/navbar/parent_item.tpl';
     private const NAVBAR_SUBPARENT_ITEM_TPL = 'menu/navbar/subparent_item.tpl';
     private const NAVBAR_CHILD_ITEM_TPL = 'menu/navbar/child_item.tpl';
 
-    private const DEFAULT_NAVBAR_PARENT_ITEM_ICON = 'fa-regular fa-circle';
-    private const DEFAULT_NAVBAR_CHILD_ITEM_ICON = 'fa-solid fa-list';
 
-    // General
+    //General
     private const DEFAULT_ACTIVE_CLASS = 'active';
 
-    // Exposed to client menus
+
+    //Exposed to client menus
     public abstract function appendMenuItems();
+
 
     /**
      * Get new menu object.
@@ -95,8 +89,6 @@ abstract class MenuBase
             $s_instance = new static();
             $s_instance->m_adminLte = AdminLTE::getInstance();
         }
-
-        $s_instance->atk = Atk::getInstance();
 
         return $s_instance;
     }
@@ -124,7 +116,7 @@ abstract class MenuBase
      * Render the menu.
      *
      * @return string HTML fragment containing the menu.
-     * @throws ReflectionException
+     * @throws SmartyException|ReflectionException
      */
     public function render(): string
     {
@@ -139,10 +131,11 @@ abstract class MenuBase
      * Load a cached version of the menu.
      * The menu gets constructed only if is not present.
      * @return array The menu
-     * @throws ReflectionException
+     * @throws SmartyException|ReflectionException
      */
     public function getMenu(): array
     {
+
         if (!$this->menu) {
             $this->menu = $this->load();
         }
@@ -159,10 +152,11 @@ abstract class MenuBase
      *               sidebar -> containing the html formatted sidebar menu
      *               left -> containing the html formatted items of the left navbar menu
      *               right -> same as the left but contains the items of the right part of the nav menu.
-     * @throws ReflectionException
+     * @throws SmartyException|ReflectionException
      */
     public function load(): array
     {
+
         $itemsHtml = $this->parseItems($this->items['main']);
 
         $itemsLeftHtml = array_filter($itemsHtml, function ($el): bool {
@@ -188,11 +182,10 @@ abstract class MenuBase
         ];
     }
 
-    /**
-     * @throws ReflectionException
-     */
+
     private function setItemsVisibility(&$htmlMenuitems)
     {
+
         $this->unsetDisabledItem($htmlMenuitems);
 
         //re-index the array in case unsets have been made!
@@ -200,7 +193,9 @@ abstract class MenuBase
         $htmlMenuitems = array_values($htmlMenuitems);
 
         $this->unsetUselessSeparatorItems($htmlMenuitems);
+
     }
+
 
     /**
      * @param array $menu - An array containing the all the menu (provided by the configuration of all the modules)
@@ -208,7 +203,7 @@ abstract class MenuBase
      * @param string $type - Needed for the recursive function to understand if it was exploring
      *                        the nav or the sidebar part on the parent
      * @return string - A complete html formatted menu of the selected type (sidebar, navbar left or navbar right)
-     * @throws ReflectionException
+     * @throws SmartyException|ReflectionException
      */
     private function processMenu(array $menu, bool $child = false, string $type = self::TYPE_MENU_SIDEBAR): string
     {
@@ -233,20 +228,22 @@ abstract class MenuBase
         if (!$menu) {
             return;
         }
-
-        // Keep outside otherwise the variable references get lost due to unset call.
+        //Keep outside otherwise the variable references get lost due to unset call.
         $menuLength = count($menu);
+
         $firstKey = array_keys($menu)[0];
 
         for ($i = $firstKey; $i < $firstKey + $menuLength; $i++) {
-            // TODO: transform item in menuItem
-            if (isset($menu[$i]) && (!$this->isEnabled($menu[$i]) || !$menu[$i]['enable'])) {
+            //todo: transform item in menuItem
+            if (!$this->isEnabled($menu[$i]) || !$menu[$i]['enable']) {
                 unset($menu[$i]);
-            } elseif (isset($menu[$i]['submenu'])) {
+            } else if (isset($menu[$i]['submenu'])) {
                 $this->unsetDisabledItem($menu[$i]['submenu']);
             }
         }
+
     }
+
 
     /**
      * @param $menu
@@ -271,12 +268,11 @@ abstract class MenuBase
 
     /**
      * The navbar part. This is very similar to the formatSidebarMenu(...)
-     * The main differences are the templates to be used for the html part.
+     * The main differences are the templates to be used for the the html part.
      * @param array $item - The menu Item containing all the submenus
      * @param bool $child - Decides it called from the recursive function or is this the main call.
      * @return string - Containing the generated html for this part of the menu.
-     * @throws ReflectionException
-     * @throws Exception
+     * @throws SmartyException|ReflectionException
      */
     private function formatNavBar(array $item, bool $child): string
     {
@@ -290,14 +286,12 @@ abstract class MenuBase
         $classes = $item['classes'] ?? '';
         $active = $item['active'] ? self::DEFAULT_ACTIVE_CLASS : '';
 
+
+        $icon = $item['icon'] ?? null;
+
         if ($this->hasSubmenu($item)) {
             $submenu = $this->processMenu($item['submenu'], true, self::TYPE_MENU_NAVBAR);
             $template = $child ? self::NAVBAR_SUBPARENT_ITEM_TPL : self::NAVBAR_PARENT_ITEM_TPL;
-            $icon = $item['icon'];
-            if (!$icon && !$item['hide_icon']) {
-                $icon = self::DEFAULT_NAVBAR_PARENT_ITEM_ICON;
-            }
-
             $html .= SmartyProvider::render($template, [
                 'title' => $title,
                 'submenu' => $submenu,
@@ -308,9 +302,7 @@ abstract class MenuBase
                 'active' => $active,
                 'hide_name' => !$child ? $item['hide_name'] : false,
                 'tooltip' => $item['tooltip'],
-                'tooltip_placement' => $item['tooltip_placement'],
-                'badge_text' => $item['badge_text'],
-                'badge_status' => $item['badge_status']
+                'tooltip_placement' => $item['tooltip_placement']
             ]);
 
         } else {
@@ -321,11 +313,6 @@ abstract class MenuBase
 
             $link = $item['url'] ?? '';
             $classes .= $child ? ' dropdown-item' : ' nav-link';
-            $icon = $item['icon'];
-            if (!$icon && !$item['hide_icon']) {
-                $icon = self::DEFAULT_NAVBAR_CHILD_ITEM_ICON;
-            }
-
             $html .= SmartyProvider::render(self::NAVBAR_CHILD_ITEM_TPL, [
                 'title' => $title,
                 'link' => $link,
@@ -337,20 +324,19 @@ abstract class MenuBase
                 'active' => $active,
                 'hide_name' => !$child ? $item['hide_name'] : false,
                 'tooltip' => $item['tooltip'],
-                'tooltip_placement' => $item['tooltip_placement'],
-                'badge_text' => $item['badge_text'],
-                'badge_status' => $item['badge_status']
+                'tooltip_placement' => $item['tooltip_placement']
             ]);
         }
 
         return $html;
+
     }
+
 
     /**
      * @param array $item - The menu Item containing all the submenus
      * @return string - Containing the generated html for this part of the menu.
-     * @throws ReflectionException
-     * @throws Exception
+     * @throws SmartyException|ReflectionException
      */
     private function formatSidebar(array $item): string
     {
@@ -361,13 +347,10 @@ abstract class MenuBase
         $active = $item['active'] ? self::DEFAULT_ACTIVE_CLASS : '';
 
         if ($this->hasSubmenu($item)) {
-            // explore the child before formatting the parent (depth-first)
-            $subMenu = $this->processMenu($item['submenu'], true);
-            $icon = $item['icon'];
-            if (!$icon && !$item['hide_icon']) {
-                $icon = self::DEFAULT_SIDEBAR_PARENT_ITEM_ICON;
-            }
 
+            //explore the child before formatting the parent (depth-first)
+            $subMenu = $this->processMenu($item['submenu'], true);
+            $icon = $item['icon'] ?? self::DEFAULT_SIDEBAR_PARENT_ITEM_ICON;
             $html .= SmartyProvider::render(self::SIDEBAR_PARENT_ITEM_TPL, [
                 'title' => $title,
                 'submenu' => $subMenu,
@@ -375,13 +358,11 @@ abstract class MenuBase
                 'icon' => $icon,
                 'icon_type' => $item['icon_type'],
                 'icon_classes' => $this->m_adminLte->getSidebarIconsSize(),
-                'active' => $active,
-                'badge_text' => $item['badge_text'],
-                'badge_status' => $item['badge_status']
+                'active' => $active
             ]);
 
         } else {
-            // no submenu
+            //Caso Simple Item -> No submenu
 
             $icon = '';
             switch ($item['type']) {
@@ -392,10 +373,7 @@ abstract class MenuBase
                     $template = self::SIDEBAR_SEPARATOR_ITEM_TPL;
                     break;
                 default:
-                    $icon = $item['icon'];
-                    if (!$icon && !$item['hide_icon']) {
-                        $icon = self::DEFAULT_SIDEBAR_CHILD_ITEM_ICON;
-                    }
+                    $icon = $item['icon'] ?? self::DEFAULT_SIDEBAR_CHILD_ITEM_ICON;
                     $template = self::SIDEBAR_CHILD_ITEM_TPL;
                     break;
             }
@@ -418,9 +396,7 @@ abstract class MenuBase
                 'active' => $active,
                 'color' => $item["color"],
                 'tooltip' => $item['tooltip'],
-                'tooltip_placement' => $item['tooltip_placement'],
-                'badge_text' => $item['badge_text'],
-                'badge_status' => $item['badge_status']
+                'tooltip_placement' => $item['tooltip_placement']
             ]);
         }
 
@@ -531,10 +507,7 @@ abstract class MenuBase
         $iconType = null,
         $hideName = false,
         $tooltip = null,
-        $tooltipPlacement = Item::TOOLTIP_PLACEMENT_BOTTOM,
-        $badgeText = null,
-        string $badgeStatus = UIStateColors::STATE_INFO,
-        $hideIcon = false
+        $tooltipPlacement = Item::TOOLTIP_PLACEMENT_BOTTOM
     )
     {
         static $order_value = 100, $s_dupelookup = [];
@@ -547,9 +520,10 @@ abstract class MenuBase
             $type = Tools::getClassName(ActionItem::class);
         }
 
-        $classes = "";
+        $classes = ""; //$active ? ' active' : '';
+        // $classes .= $icon ? ' fas fa-' . $icon : ' fas fa-th';
 
-        $item = [
+        $item = array(
             'name' => $name,
             'url' => $url,
             'enable' => $enable,
@@ -567,10 +541,7 @@ abstract class MenuBase
             'hide_name' => $hideName,
             'tooltip' => $tooltip,
             'tooltip_placement' => $tooltipPlacement,
-            'badge_text' => $badgeText,
-            'badge_status' => $badgeStatus,
-            'hide_icon' => $hideIcon
-        ];
+        );
 
         if (isset($s_dupelookup[$parent][$name]) && ($name != '-')) {
             $this->items[$parent][$s_dupelookup[$parent][$name]] = $item;
@@ -599,16 +570,13 @@ abstract class MenuBase
         throw new Exception("Method " . $method . " does not exist!");
     }
 
-    /**
-     * @throws ReflectionException
-     */
     private function addHeaderItem(HeaderItem $item): HeaderItem
     {
         $this->addMenuItem(
             $item->getName(),
             "",
             $item->getParent(),
-            $this->mapItemEnable($item->getEnable()),
+            $item->getEnable(),
             $item->getOrder(),
             $item->getModule(),
             "",
@@ -627,16 +595,13 @@ abstract class MenuBase
         return $item;
     }
 
-    /**
-     * @throws ReflectionException
-     */
     private function addSeparatorItem(SeparatorItem $item): SeparatorItem
     {
         $this->addMenuItem(
             $item->getName(),
             "",
             $item->getParent(),
-            $this->mapItemEnable($item->getEnable()),
+            $item->getEnable(),
             $item->getOrder(),
             $item->getModule(),
             "",
@@ -660,9 +625,9 @@ abstract class MenuBase
      */
     private function addActionItem(ActionItem $item): ActionItem
     {
-        // default icon for sidebar menu
+
         if ($item->getPosition() === self::MENU_SIDEBAR) {
-            if (!$item->getIcon() && !$item->isIconHidden()) {
+            if (!$item->getIcon()) {
                 if ($item->getAction() === 'admin') {
                     $item->setIcon(self::ICON_ADMIN);
                 } else if ($item->getAction() === 'add') {
@@ -673,10 +638,10 @@ abstract class MenuBase
             }
         }
 
-        $menuId = $_GET[Node::PARAM_ATKMENU] ?? null;
+        $menuId = $_GET['atkmenu'];
 
         if (!$menuId) {
-            $menuId = SessionManager::getInstance()->globalStackVar(Node::PARAM_ATKMENU);
+            $menuId = SessionManager::getInstance()->globalStackVar('atkmenu');
         }
 
         if ($menuId && $item->getIdentifier() === $menuId) {
@@ -687,24 +652,22 @@ abstract class MenuBase
             $item->getName(),
             $item->getUrl(),
             $item->getParent(),
-            $this->mapItemEnable($item->getEnable()),
+            $item->getEnable(),
             $item->getOrder(),
             $item->getModule(),
-            '',
+            "",
             $item->isRaw(),
             $item->getPosition(),
             $item->getType(),
             $item->isActive(),
             $item->getIcon(),
-            '',
+            "",
             $item->getIconType(),
             $item->isNameHidden(),
             $item->getTooltip(),
-            $item->getTooltipPlacement(),
-            $item->getBadgeText(),
-            $item->getBadgeStatus(),
-            $item->isIconHidden()
+            $item->getTooltipPlacement()
         );
+
 
         return $item;
     }
@@ -718,7 +681,7 @@ abstract class MenuBase
             $item->getName(),
             $item->getUrl(),
             $item->getParent(),
-            $this->mapItemEnable($item->getEnable()),
+            $item->getEnable(),
             $item->getOrder(),
             $item->getModule(),
             $item->getTarget(),
@@ -727,14 +690,11 @@ abstract class MenuBase
             $item->getType(),
             $item->isActive(),
             $item->getIcon(),
-            '',
+            "",
             $item->getIconType(),
             $item->isNameHidden(),
             $item->getTooltip(),
-            $item->getTooltipPlacement(),
-            null,
-            '',
-            $item->isIconHidden()
+            $item->getTooltipPlacement()
         );
 
         return $item;
@@ -749,36 +709,9 @@ abstract class MenuBase
         return $items;
     }
 
-    private function isModuleRegistered(array $item): bool
-    {
-        //For these items we don't have enough information (parent menus, separators)
-        //so we should let them pass at this point, well'filter them later.
-        if (!isset($item['url'])) {
-            return true;
-        }
-
-        $moduleNodeArray = NodeUtils::getAtkModuleAndNodeFromUrl($item['url']);
-        if (empty($moduleNodeArray)) {
-            return true;
-        }
-
-        $moduleName = $moduleNodeArray[0];
-
-        if ($this->atk->isModule($moduleName)) {
-            return true;
-        } else {
-            Tools::atkdebug("The module $moduleName is not registered in the config file ", Tools::DEBUG_WARNING);
-            return false;
-        }
-    }
 
     private function parseItem(array &$item): ?array
     {
-
-        if (!$this->isModuleRegistered($item)) {
-            $item['enable'] = false;
-        }
-
         if ($item['enable'] && array_key_exists($item['name'], $this->items)) {
             $item['submenu'] = $this->parseItems($this->items[$item['name']]);
             return $item;
@@ -787,29 +720,20 @@ abstract class MenuBase
         return null;
     }
 
+
     private function hasSubmenu(array $item): bool
     {
         return isset($item['submenu']) && Tools::count($item['submenu']);
     }
 
+
     private function getMenuTitle(array $item, string $append = ''): string
     {
-        if ($item['raw'] === true) {
+        if ($item['raw'] == true) {
             return $item['name'];
         }
 
-        return $this->getMenuTranslation($item['name'], $item['module']) . $append;
+        return (string)$this->getMenuTranslation($item['name'], $item['module']) . $append;
     }
 
-    /**
-     * @param bool|array $enable
-     * @return int|array
-     */
-    private function mapItemEnable($enable)
-    {
-        if (is_array($enable)) {
-            return $enable;
-        }
-        return $enable ? 1 : 0;
-    }
 }

@@ -2,7 +2,6 @@
 
 namespace Sintattica\Atk\Relations;
 
-use Exception;
 use Sintattica\Atk\Core\Tools;
 use Sintattica\Atk\Core\TreeToolsTree;
 use Sintattica\Atk\DataGrid\DataGrid;
@@ -22,6 +21,19 @@ class ManyToOneTreeRelation extends ManyToOneRelation
     public $m_level = '';
 
     /**
+     * Constructor.
+     *
+     * @param string $name Name of the attribute
+     * @param int $flags Flags for the relation
+     * @param string $destination Destination node for this relation
+     *
+     */
+    public function __construct($name, $flags = 0, $destination)
+    {
+        parent::__construct($name, $flags, $destination);
+    }
+
+    /**
      * Returns a piece of html code that can be used in a form to edit this
      * attribute's value.
      *
@@ -31,7 +43,6 @@ class ManyToOneTreeRelation extends ManyToOneRelation
      * @param string $mode The mode we're in ('add' or 'edit')
      *
      * @return string Piece of html code that can  be used in a form to edit this
-     * @throws Exception
      */
     public function edit($record, $fieldprefix, $mode)
     {
@@ -42,13 +53,13 @@ class ManyToOneTreeRelation extends ManyToOneRelation
             $sp = new StringParser($this->m_destinationFilter);
             $this->m_destInstance->addFilter($sp->parse($record));
         }
-        $recordset = $this->m_destInstance->select($this->m_destInstance->getTable() . '.' . $this->m_destInstance->m_primaryKey[0])->includes($tmp2)->getAllRows();
-        $this->m_current = $this->m_ownerInstance->primaryKey($record[$this->fieldName()]);
-        $result = '<select class="form-control" name="' . $this->getHtmlName($fieldprefix) . '">';
+        $recordset = $this->m_destInstance->select($this->m_destInstance->m_primaryKey[0])->includes($tmp2)->getAllRows();
+        $this->m_current = $this->m_ownerInstance->primaryKey($record);
+        $result = '<select class="form-control" name="'.$this->getHtmlName($fieldprefix).'">';
 
-        if (!$this->hasFlag(self::AF_OBLIGATORY)) {
-            // Relation may be empty, so we must provide an empty selectable
-            $result .= '<option value="0">' . Tools::atktext('select_none');
+        if ($this->hasFlag(self::AF_OBLIGATORY) == false) {
+            // Relation may be empty, so we must provide an empty selectable..
+            $result .= '<option value="0">'.Tools::atktext('select_none');
         }
         $result .= $this->createdd($recordset);
         $result .= '</select>';
@@ -64,10 +75,10 @@ class ManyToOneTreeRelation extends ManyToOneRelation
             $this->m_destInstance->addFilter($sp->parse($record));
         }
         $recordset = $this->m_destInstance->select()->includes(Tools::atk_array_merge($this->m_destInstance->descriptorFields(),
-            $this->m_destInstance->m_primaryKey))->getAllRows();
+                $this->m_destInstance->m_primaryKey))->getAllRows();
 
-        $result = '<select class="form-control form-control-sm" name="atksearch[' . $this->fieldName() . ']">';
-        $result .= '<option value="">' . Tools::atktext('search_all', 'atk');
+        $result = '<select class="form-control form-control-sm" name="atksearch['.$this->fieldName().']">';
+        $result .= '<option value="">'.Tools::atktext('search_all', 'atk');
         $result .= $this->createdd($recordset);
         $result .= '</select>';
 
@@ -89,7 +100,9 @@ class ManyToOneTreeRelation extends ManyToOneRelation
             $t->addNode($recordset[$i][$this->m_destInstance->m_primaryKey[0]], $this->m_destInstance->descriptor($group),
                 $recordset[$i][$this->m_destInstance->m_parent][$this->m_destInstance->m_primaryKey[0]]);
         }
-        return $this->render($t->m_tree);
+        $tmp = $this->render($t->m_tree);
+
+        return $tmp;
     }
 
     /**
@@ -104,9 +117,9 @@ class ManyToOneTreeRelation extends ManyToOneRelation
     {
         $res = '';
         $i = 0;
-        foreach ($tree as $objarr) {
+        while (list(, $objarr) = each($tree)) {
             ++$i;
-            if ($this->m_current != $this->m_destInstance->getTable() . '.' . $this->m_destInstance->m_primaryKey[0] . "='" . $objarr->m_id . "'") {
+            if ($this->m_current != $this->m_destInstance->m_table.'.'.$this->m_destInstance->m_primaryKey[0]."='".$objarr->m_id."'") {
                 $this->m_level = $level;
                 $sel = '';
             } else {
@@ -114,8 +127,8 @@ class ManyToOneTreeRelation extends ManyToOneRelation
                 $sel = 'SELECTED';
             }
 
-            $res .= '<option value="' . $this->m_destInstance->getTable() . '.' . $this->m_destInstance->m_primaryKey[0] . "='" . $objarr->m_id . "'" . '" ' . $sel . '>' . str_repeat('-',
-                    (2 * $level)) . ' ' . $objarr->m_label;
+            $res .= '<option value="'.$this->m_destInstance->m_table.'.'.$this->m_destInstance->m_primaryKey[0]."='".$objarr->m_id."'".'" '.$sel.'>'.str_repeat('-',
+                    (2 * $level)).' '.$objarr->m_label;
 
             if (Tools::count($objarr->m_sub) > 0 && $sel == '') {
                 $res .= $this->render($objarr->m_sub, $level + 1);

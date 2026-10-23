@@ -2,11 +2,9 @@
 
 namespace Sintattica\Atk\Core;
 
-use Countable;
 use ReflectionClass;
 use ReflectionException;
 use Sintattica\Atk\AdminLte\UIStateColors;
-use Sintattica\Atk\Attributes\FileAttribute;
 use Sintattica\Atk\Db\Db;
 use Sintattica\Atk\Ui\Output;
 use Sintattica\Atk\Session\SessionManager;
@@ -17,7 +15,6 @@ use Sintattica\Atk\Ui\Page;
 use Sintattica\Atk\Utils\BrowserInfo;
 use Sintattica\Atk\Handlers\ActionHandler;
 use Exception;
-use ZipArchive;
 
 class Tools
 {
@@ -86,26 +83,32 @@ class Tools
 
     /**
      * Function self::atkErrorHandler
-     * This function catches PHP parse errors, etc. and passes
+     * This function catches PHP parse errors etc, and passes
      * them to self::atkerror(), so errors can be mailed and output
      * can be regulated.
      * This function must be registered with set_error_handler("self::atkErrorHandler");.
      *
-     * @param $errorTypeNum : One of the PHP errortypes (E_PARSE, E_USER_ERROR, etc.)
+     * @param $errtype : One of the PHP errortypes (E_PARSE, E_USER_ERROR, etc)
      * (See http://www.php.net/manual/en/function.error-reporting.php)
      * @param $errstr : Error self::text
      * @param $errfile : The php file in which the error occured.
      * @param $errline : The line in the file on which the error occured.
      * @throws Exception
      */
-    public static function atkErrorHandler($errorTypeNum, $errstr, $errfile, $errline): void
+    public static function atkErrorHandler($errtype, $errstr, $errfile, $errline)
     {
-        // probably suppressed error using the @ operator
+        // probably suppressed error using the @ operator, simply ignore
+        // Todo: Disable this check in dev; We need to fix all the errors!
         if (error_reporting() == 0) {
             return;
         }
 
-        $errorTypes = [
+        // Respect error_reporting (PHP calls the handler for every level, including compile-time deprecations)
+        if (is_int($errtype) && !(error_reporting() & $errtype)) {
+            return;
+        }
+
+        $errorType = [
             E_ERROR => "Error",
             E_WARNING => "Warning",
             E_PARSE => "Parsing Error",
@@ -117,40 +120,62 @@ class Tools
             E_USER_ERROR => "User Error",
             E_USER_WARNING => "User Warning",
             E_USER_NOTICE => "User Notice",
+            2048 => "Strict Notice", // E_STRICT, deprecated as a constant in PHP 8.4,
             'EXCEPTION' => 'Uncaught exception',
         ];
 
+        // E_RECOVERABLE_ERROR is available since 5.2.0
         if (defined('E_RECOVERABLE_ERROR')) {
-            $errorTypes[E_RECOVERABLE_ERROR] = 'Recoverable Error';
+            $errorType[E_RECOVERABLE_ERROR] = "Recoverable Error";
         }
 
+        // E_DEPRECATED / E_USER_DEPRECATED are available since 5.3.0
         if (defined('E_DEPRECATED')) {
-            $errorTypes[E_DEPRECATED] = 'Deprecated';
-            $errorTypes[E_USER_DEPRECATED] = 'User Deprecated';
+            $errorType[E_DEPRECATED] = "Deprecated";
+            $errorType[E_USER_DEPRECATED] = "User Deprecated";
         }
 
-        $errorCode = $errorTypes[$errorTypeNum] ?? "Unknown Error";
+        // PHP 8 promoted these from E_NOTICE to E_WARNING; ATK 9 relies on them heavily, so keep PHP 7.4's notice handling
+        if ($errtype === E_WARNING && preg_match('/^(Undefined (variable|array key|offset|index|property)|Trying to access array offset on|Attempt to read property)/', $errstr)) {
+            $errtype = E_NOTICE;
+        }
 
-        if ($errorTypeNum == E_NOTICE) {
-            self::atkdebug("[$errorCode] $errstr in $errfile (line $errline)", self::DEBUG_NOTICE);
+        // Translate the given errortype into a string
+        $errortypestring = $errorType[$errtype];
+
+        if ($errtype == 2048) { // E_STRICT
+            // ignore strict notices for now, there is too much stuff that needs to be fixed
             return;
-        }
+        } else {
+            if ($errtype == E_NOTICE) {
+                // Just show notices
+                self::atkdebug("[$errortypestring] $errstr in $errfile (line $errline)", self::DEBUG_NOTICE);
 
-        if (defined('E_DEPRECATED') && in_array($errorTypeNum, [E_DEPRECATED, E_USER_DEPRECATED])) {
-            self::atkdebug("[$errorCode] $errstr in $errfile (line $errline)", self::DEBUG_NOTICE);
-            return;
-        }
+                return;
+            } else {
+                // $errtype is the string 'EXCEPTION' when called from atkExceptionHandler; PHP 8 throws on string & int
+                if (defined('E_DEPRECATED') && is_int($errtype) && ($errtype & (E_DEPRECATED | E_USER_DEPRECATED)) > 0) {
+                    // Just show deprecation warnings in the debug log, but don't influence the program flow
+                    self::atkdebug("[$errortypestring] $errstr in $errfile (line $errline)", self::DEBUG_NOTICE);
 
-        if (in_array($errorTypeNum, [E_WARNING, E_USER_WARNING])) {
-            self::atkerror("[$errorCode] $errstr in $errfile (line $errline)");
-            return;
-        }
+                    return;
+                } else {
+                    if (is_int($errtype) && ($errtype & (E_WARNING | E_USER_WARNING)) > 0) {
+                        // This is something we should pay attention to, but we don't need to die.
+                        self::atkerror("[$errortypestring] $errstr in $errfile (line $errline)");
 
-        header("HTTP/1.0 500 Internal Server Error");
-        self::atkerror("[$errorCode] $errstr in $errfile (line $errline)", ($errorTypeNum == 'EXCEPTION'));
-        self::atkhalt($errstr, 'critical');
+                        return;
+                    } else {
+                        header("HTTP/1.0 500 Internal Server Error");
+                        self::atkerror("[$errortypestring] $errstr in $errfile (line $errline)", ($errtype == 'EXCEPTION'));
+                        // we must die. we can't even output anything anymore..
+                        // we can do something with the info though.
+                        self::atkhalt($errstr, 'critical');
+                    }
+                }
+            }
+        }
     }
-
 
     /**
      * Default ATK exception handler, handles uncaught exceptions and calls atkHalt.
@@ -170,7 +195,8 @@ class Tools
     {
 
         $error = error_get_last();
-        if ($error) {
+        // error_get_last() also returns warnings/deprecations that were already handled; only fatal errors end up here unhandled
+        if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR, E_RECOVERABLE_ERROR], true)) {
             self::atkErrorHandler(E_ERROR, $error['message'], $error['file'], $error['line']);
         }
     }
@@ -316,13 +342,13 @@ class Tools
      * @param string|Exception $error the error self::text or exception to display
      * @param bool $skipThrow
      *
-     * @throws Exception if throw_exception_on_error
+     * @throws \Exception if throw_exception_on_error
      */
-    public static function atkerror($error, bool $skipThrow = false)
+    public static function atkerror($error, $skipThrow = false)
     {
         global $g_error_msg, $g_debug_msg;
 
-        if ($error instanceof Exception) {
+        if ($error instanceof \Exception) {
             $g_error_msg[] = '[' . Debugger::elapsed() . '] ' . $error->getMessage();
             self::atkdebug(nl2br($error->getMessage() . "\n" . $error->getTraceAsString()), self::DEBUG_ERROR);
         } else {
@@ -543,11 +569,9 @@ class Tools
      *
      * @return array The result of the merge between $array1 and $array2
      */
-    public static function atk_array_merge(array $array1, array ...$arrays): array
+    public static function atk_array_merge(array $array1, array $array2 = null, array $_ = null)
     {
-        $allArrays = array_filter([$array1, ...$arrays], 'is_array');
-
-        return array_unique(array_merge(...$allArrays), SORT_REGULAR);
+        return array_unique(call_user_func_array('array_merge', func_get_args()), SORT_REGULAR);
     }
 
     /**
@@ -612,7 +636,7 @@ class Tools
      *
      * @return bool wether or not the value is in the array
      */
-    public static function atk_in_array($needle, $haystack, bool $strict = false): bool
+    public static function atk_in_array($needle, $haystack, $strict = false)
     {
         return is_array($haystack) && in_array($needle, $haystack, $strict);
     }
@@ -690,16 +714,16 @@ class Tools
      * @todo we should also support <=>, >=, >, <=, <, <>
      *
      */
-    public static function decodeKeyValueSet(string $set): array
+    public static function decodeKeyValueSet($set)
     {
         $result = [];
         $items = explode(' AND ', $set);
         for ($i = 0; $i < Tools::count($items); ++$i) {
             $items[$i] = trim($items[$i], '()'); // trim parenthesis if present, e.g. (id=3) AND (name='joe')
-            if (str_contains($items[$i], '!=')) {
+            if (strstr($items[$i], '!=') !== false) {
                 list($key, $value) = explode('!=', $items[$i]);
                 $result[trim($key)] = self::stripQuotes($value);
-            } elseif (str_contains($items[$i], '=')) {
+            } elseif (strstr($items[$i], '=') !== false) {
                 list($key, $value) = explode('=', $items[$i]);
                 $result[trim($key)] = self::stripQuotes($value);
             } elseif (stristr($items[$i], 'IS NULL') !== false) {
@@ -712,19 +736,20 @@ class Tools
     }
 
     /**
-     * Translates Array("id"=>3,"name"=>"joe") into a string like id='3' AND name='joe'.
+     * Translates Array("id"=>3,"name"=>"joe") into a string like id='3 AND name='joe''.
      *
      * @param array $set the array to be encoded
      *
      * @return string the encoded string
      */
-    public static function encodeKeyValueSet(array $set): string
+    public static function encodeKeyValueSet($set)
     {
         reset($set);
         $items = [];
-        foreach ($set as $key => $value) {
-            $items[] = "$key='$value'";
+        while (list($key, $value) = each($set)) {
+            $items[] = $key . '=' . $value;
         }
+
         return implode(' AND ', $items);
     }
 
@@ -749,7 +774,7 @@ class Tools
      * Performs stripslashes on all vars and translates:
      *                 something_AMDAE_other[] into something[][other]
      *                 something_AE_other into something[other]
-     *                 and a_AE_b_AE_c into a[b][c] and so on...
+     *                 (and a_AE_b_AE_c into a[b][c] and so on...
      *
      * @param array &$vars the array to be stripped and translated
      */
@@ -1074,84 +1099,6 @@ class Tools
     }
 
     /**
-     * @param string $filepath The path of file to be downloaded
-     * @param string $downloadName The name of the file to be downloaded
-     * @param string $mimeType
-     * @param bool $inline
-     * @throws Exception
-     */
-    public static function downloadFile(string $filepath, string $downloadName = '', string $mimeType = 'application/octet-stream', bool $inline = false)
-    {
-        self::streamFile($filepath, $downloadName, $mimeType, $inline);
-    }
-
-    /**
-     * Downloads one or more file in a .zip
-     *
-     * @param array $filespath List of files to be downloaded (a file .zip will be generated)
-     * @param string $downloadName The name of the file to be downloaded
-     * @throws Exception
-     */
-    public static function downloadFilesZipped(array $filespath, string $downloadName = '')
-    {
-        // creates the .zip file
-        $downloadPath = Config::getGlobal('atktempdir') . 'downloads/';
-        if (!file_exists($downloadPath)) {
-            mkdir($downloadPath);
-        }
-        if (!file_exists($downloadPath)) {
-            throw new Exception("Unable to create $downloadPath directory");
-        }
-        $downloadPath .= '/' . date('YmdHi') . '_archive.zip';
-        $zip = new ZipArchive();
-        $zip->open($downloadPath, ZipArchive::CREATE);
-        foreach ($filespath as $file) {
-            $zip->addFile($file, pathinfo($file, PATHINFO_BASENAME));
-        }
-        $zip->close();
-        $mimeType = 'application/zip';
-
-        self::streamFile($downloadPath, $downloadName, $mimeType);
-    }
-
-    /**
-     * @throws Exception
-     */
-    private static function streamFile(string $downloadPath, string $downloadName = '', string $mimeType = 'application/octet-stream', bool $inline = false)
-    {
-        if ($downloadName) {
-            $filename = $downloadName . '.' . pathinfo($downloadPath, PATHINFO_EXTENSION);
-        } else {
-            $filename = pathinfo($downloadPath, PATHINFO_BASENAME);
-        }
-
-        if (!file_exists($downloadPath)) {
-            // the file doesn't exist
-            throw new Exception("File '$filename' not found");
-        }
-
-        header('Content-Description: File Transfer');
-        header("Content-Type: " . $mimeType);
-        header("Content-Transfer-Encoding: Binary");
-        if ($inline) {
-            if (in_array($mimeType, FileAttribute::ALLOWED_INLINE_MIMETYPE)) {
-                header('Content-Disposition: inline; filename="' . $filename . '"');
-            } else {
-                throw new Exception("Mimetype '$mimeType' not allowed, download the file instead!");
-            }
-        } else {
-            header('Content-Disposition: attachment; filename="' . $filename . '"');
-        }
-        header('Expires: 0');
-        header('Cache-Control: must-revalidate');
-        header('Pragma: public');
-        header("Content-Length: " . filesize($downloadPath));
-        flush(); // flush system output buffer
-        readfile($downloadPath);
-        exit;
-    }
-
-    /**
      * Returns the (virtual) hostname of the server.
      *
      * @return string the hostname of the server
@@ -1331,6 +1278,7 @@ class Tools
      */
     public static function dispatch_url(string $nodeUri, ?string $action, array $params = [], string $phpfile = ''): string
     {
+
         $phpfile = ($phpfile != '') ?: Config::getGlobal('dispatcher');
         $atkParams = [];
         if ($nodeUri != '') {
@@ -1342,10 +1290,10 @@ class Tools
 
         $params = array_merge($atkParams, $params);
 
-        if (!isset($params[Node::PARAM_ATKMENU]) and isset($_GET[Node::PARAM_ATKMENU]) && $_GET[Node::PARAM_ATKMENU]) {
+        if (!isset($params['atkmenu']) and $_GET['atkmenu']) {
             // TODO: refactoring $_GET
             // no atkmenu passed, but one retrieved from query string
-            $params[Node::PARAM_ATKMENU] = $_GET[Node::PARAM_ATKMENU];
+            $params['atkmenu'] = $_GET['atkmenu'];
         }
 
         if ($params != '' && is_array($params) && Tools::count($params) > 0) {
@@ -1903,12 +1851,12 @@ class Tools
      * When using hrefs in the editform, you can set saveform to true. This will save your
      * form variables in the session and restore them whenever you come back.
      *
-     * @param string|null $url the url to make session aware
+     * @param string $url the url to make session aware
      * @param string $internalElement It can be a html element or a simple text (not escaped)
      * @param string $sessionStatus the session flags
      *                              (SessionManager::SESSION_DEFAULT (default)|SessionManager::SESSION_NEW|SessionManager::SESSION_REPLACE|
      *                              SessionManager::SESSION_NESTED|SessionManager::SESSION_BACK)
-     * @param bool $saveForm whether to save the form
+     * @param bool $saveForm whether or not to save the form
      * @param string $extraProps extra props you can add in the link such as
      *                              'onChange="doSomething()"'
      * @return string the HTML link for the session aware URI
@@ -1981,7 +1929,7 @@ class Tools
     }
 
     /**
-     * Gets the node type of node string.
+     * Gets the node type of a node string.
      *
      * @param string $nodeUri the node uri
      *
@@ -2211,15 +2159,8 @@ class Tools
         }
     }
 
-    /**
-     * @param string $html
-     * @param int $maxLength
-     * @param bool $forceWholeWords Use true to make sure the last word doesn't get trimmed
-     * @param string $endingChars
-     * @param bool $isUtf8
-     * @return string
-     */
-    static function truncateHTML(string $html, int $maxLength, bool $forceWholeWords = false, string $endingChars = '...', bool $isUtf8 = true): string
+
+    static function truncateHTML(string $html, int $maxLength, string $endingChars = '...', bool $isUtf8 = true): string
     {
         $printedLength = 0;
         $position = 0;
@@ -2237,7 +2178,7 @@ class Tools
 
             // Print text leading up to the tag.
             $str = substr($html, $position, $tagPosition - $position);
-            if (!$forceWholeWords && $printedLength + strlen($str) > $maxLength) {
+            if ($printedLength + strlen($str) > $maxLength) {
                 $result .= (substr($str, 0, $maxLength - $printedLength));
                 $printedLength = $maxLength;
                 break;
@@ -2245,28 +2186,25 @@ class Tools
 
             $result .= $str;
             $printedLength += strlen($str);
-            if ($printedLength >= $maxLength) {
-                break;
-            }
+            if ($printedLength >= $maxLength) break;
 
             if ($tag[0] == '&' || ord($tag) >= 0x80) {
                 // Pass the entity or UTF-8 multibyte sequence through unchanged.
                 $result .= $tag;
                 $printedLength++;
-
             } else {
                 // Handle the tag.
                 $tagName = $match[1][0];
                 if ($tag[1] == '/') {
                     // This is a closing tag.
+
                     $openingTag = array_pop($tags);
                     assert($openingTag == $tagName); // check that tags are properly nested.
-                    $result .= $tag;
 
-                } elseif ($tag[strlen($tag) - 2] == '/') {
+                    $result .= $tag;
+                } else if ($tag[strlen($tag) - 2] == '/') {
                     // Self-closing tag.
                     $result .= $tag;
-
                 } else {
                     // Opening tag.
                     $result .= $tag;
@@ -2275,7 +2213,7 @@ class Tools
             }
 
             // Continue after the tag.
-            $position = (int)$tagPosition + strlen($tag);
+            $position = $tagPosition + strlen($tag);
         }
 
         // Print any remaining text.
@@ -2287,7 +2225,7 @@ class Tools
             $result .= sprintf('</%s>', array_pop($tags));
         }
 
-        if (strlen($result) < strlen($html)) {
+        if(strlen($result) < strlen($html)){
             $result .= $endingChars;
         }
 
@@ -2305,7 +2243,7 @@ class Tools
      */
     public static function count($value): int
     {
-        if (is_array($value) || $value instanceof Countable) {
+        if (is_array($value) || $value instanceof \Countable) {
             return count($value);
         }
         return 0;
@@ -2513,65 +2451,10 @@ class Tools
     public static function formatTagList(array $list = [], string $uiStateColor = UIStateColors::STATE_SECONDARY): string
     {
         if (!$list) {
-            return '';
+            return "";
         }
 
         return '<div style="max-width: 400px; white-space: normal;"><span class="badge-sm badge-pill badge-' . $uiStateColor . ' mr-1 text-nowrap">' . implode('</span><span class="badge-sm badge-pill badge-' . $uiStateColor . ' mr-1 text-nowrap">', $list) . '</span></div>';
     }
 
-    /**
-     * Check if the string begins with one or more substrings.
-     *
-     * @param string $haystack
-     * @param string[]|string $needle
-     * @return bool
-     */
-    static function strStartsWith(string $haystack, $needle): bool
-    {
-        if (!is_array($needle)) {
-            $needle = [$needle];
-        }
-        foreach ($needle as $s) {
-            if (substr($haystack, 0, strlen($s)) === $s) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Check if the string ends with one or more substrings.
-     *
-     * @param string $haystack
-     * @param string[]|string $needle
-     * @param bool $caseInsensitive
-     * @return bool
-     */
-    static function strEndsWith(string $haystack, $needle, bool $caseInsensitive = false): bool
-    {
-        if (!is_array($needle)) {
-            $needle = array($needle);
-        }
-        foreach ($needle as $s) {
-            if (substr_compare($haystack, $s, -strlen($s), strlen($s), $caseInsensitive) === 0) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Replaces only N occurrences of $subject, where N == $limit.
-     *
-     * @param string $search
-     * @param string $replace
-     * @param string $subject
-     * @param int $limit
-     * @return string
-     */
-    static function strReplaceOccurrence(string $search, string $replace, string $subject, int $limit = 1): string
-    {
-        $search = '/' . preg_quote($search, '/') . '/';
-        return preg_replace($search, $replace, $subject, $limit);
-    }
 }

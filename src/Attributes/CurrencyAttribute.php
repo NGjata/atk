@@ -32,52 +32,25 @@ class CurrencyAttribute extends NumberAttribute
         $thousandsseparator = ''
     ) {
         parent::__construct($name, $flags, $decimals);
-
         $this->setAttribSize(10);
-        $this->setMaxWidth('30px');
 
-        if (empty($currencysymbol)) {
+        if ($currencysymbol == '') {
             $currencysymbol = Tools::atktext('currencysymbol', 'atk', '', '', '', true);
         }
         $this->m_currencysymbol = $currencysymbol;
 
-        if (empty($decimalseparator)) {
+        if ($decimalseparator == '') {
             $decimalseparator = Tools::atktext('decimal_separator', 'atk', '', '', '', true);
         }
         $this->m_decimalseparator = $decimalseparator ?: '.';
 
-        if (empty($thousandsseparator)) {
+        if ($thousandsseparator == '') {
             $thousandsseparator = Tools::atktext('thousands_separator', 'atk', '', '', '', true);
         }
         $this->m_thousandsseparator = $thousandsseparator ?: ',';
 
         $this->setUseThousandsSeparator(true);
         $this->setTrailingZeros(true);
-    }
-
-    /**
-     * overrides the display function to put the currencysymbol in front of the input field.
-     *
-     * The regular Attribute uses PHP's nl2br() and htmlspecialchars()
-     * methods to prepare a value for display, unless $mode is "cvs".
-     *
-     * @param array<string, mixed> $record The record that holds the value for this attribute
-     * @param string $mode The display mode ("view" for viewpages, or "list"
-     *                       for displaying in recordlists, "edit" for
-     *                       displaying in editscreens, "add" for displaying in
-     *                       add screens. "csv" for csv files. Applications can
-     *                       use additional modes.
-     *
-     * @return string HTML String
-     */
-    public function display(array $record, string $mode): string
-    {
-        $result = parent::display($record, $mode);
-        if ($result !== '' && $this->m_currencysymbol) {
-            $result = $this->getCurrencySymbolDisplay() . ' ' . $result;
-        }
-
-        return $result;
     }
 
     /**
@@ -94,21 +67,54 @@ class CurrencyAttribute extends NumberAttribute
     {
         $input = parent::edit($record, $fieldprefix, $mode);
         $currency = trim($this->getCurrencySymbolDisplay());
+        $result = $input;
 
-        if (strlen($currency) > 0) {
-            $result = '<div class="input-group">';
+        $size = $this->m_size;
+        if ($this->getDecimals() > 0) {
+            $size += ($this->getDecimals() + 1);
+        }
+
+        if (strlen($currency)) {
+            $result = '<div class="input-group" style="width:'.$size.'em;">';
             $result .= $input;
-            $result .= "<span style='max-width: {$this->getMaxWidth()}'{$this->getCSSClassAttribute(['btn', 'btn-sm', 'btn-default'])}>$currency</span>";
+            $result .= '<div class="input-group-addon">'.$currency.'</div>';
             $result .= '</div>';
-
-        } else {
-            $result = $input;
         }
 
         return $result;
     }
 
-    public function getCurrencySymbolDisplay(): string
+    /**
+     * overrides the display function to put the currencysymbol in front of the input field.
+     *
+     * The regular Attribute uses PHP's nl2br() and htmlspecialchars()
+     * methods to prepare a value for display, unless $mode is "cvs".
+     *
+     * @param array $record The record that holds the value for this attribute
+     * @param string $mode The display mode ("view" for viewpages, or "list"
+     *                       for displaying in recordlists, "edit" for
+     *                       displaying in editscreens, "add" for displaying in
+     *                       add screens. "csv" for csv files. Applications can
+     *                       use additional modes.
+     *
+     * @return string HTML String
+     */
+    public function display($record, $mode)
+    {
+        $result = parent::display($record, $mode);
+        if ($result !== '' && $this->m_currencysymbol) {
+            $result = $this->getCurrencySymbolDisplay() . ' ' . $result;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get currency symbol display.
+     *
+     * @return string
+     */
+    public function getCurrencySymbolDisplay()
     {
         return $this->m_currencysymbol;
     }

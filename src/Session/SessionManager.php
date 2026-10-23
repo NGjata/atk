@@ -4,7 +4,6 @@ namespace Sintattica\Atk\Session;
 
 use Sintattica\Atk\Core\Atk;
 use Sintattica\Atk\Core\Config;
-use Sintattica\Atk\Core\Node;
 use Sintattica\Atk\Core\Tools;
 use Sintattica\Atk\Ui\Ui;
 
@@ -526,7 +525,7 @@ class SessionManager
             'atkpkret',
             'atkstore',
             'atkstore_key',
-            Node::PARAM_ATKMENU,
+            'atkmenu',
         ];
 
         // pagevars are valid on a page. if you go a session level higher, the pagevars are no longer
@@ -536,7 +535,7 @@ class SessionManager
             'atkdg*',
             'atkdgsession',
             'atksearch',
-            Node::PARAM_ATKSELECTOR,
+            'atkselector',
             'atksearchmode',
             'atkorderby',
             'atkstartat',
@@ -552,7 +551,7 @@ class SessionManager
 
         // lockedvars are session or page vars that will not be overwritten in partial mode
         // e.g., the values that are already known in the session will be used
-        $lockedVars = ['atknodeuri', 'atkaction', Node::PARAM_ATKSELECTOR, Node::PARAM_ATKMENU];
+        $lockedVars = ['atknodeuri', 'atkaction', 'atkselector', 'atkmenu'];
 
         // Mental note: We have an $this->atkLevel() function for retrieving the atklevel,
         // but we use the global var itself here, because it gets modified in
@@ -790,9 +789,9 @@ class SessionManager
             $action = $stack[$i]['atkaction'];
             $title = $ui->title($module, $type, $action);
             $descriptor = Tools::atkArrayNvl($stack[$i], 'descriptor', '');
-            $menuId = $stack[$i][Node::PARAM_ATKMENU];
+            $menuId = $stack[$i]['atkmenu'];
 
-            $entry = [
+            $entry = array(
                 'url' => '',
                 'title' => $title,
                 'descriptor' => $descriptor,
@@ -800,8 +799,8 @@ class SessionManager
                 'nodetitle' => Tools::atktext($type, $module, $type),
                 'action' => $action,
                 'actiontitle' => Tools::atktext($action, $module, $type),
-                Node::PARAM_ATKMENU => $menuId
-            ];
+                'atkmenu' => $menuId
+            );
 
             if ($i < Tools::count($stack) - 1) {
                 $entry['url'] = $this->sessionUrl(Config::getGlobal('dispatcher').'?atklevel='.$i);

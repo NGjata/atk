@@ -105,22 +105,18 @@ class AdminHandler extends ActionHandler
      * @return string A box containing the admin page (without the add form,
      *                which is added later.
      */
-    public function adminPage($actions = [])
+    public function adminPage($actions = array())
     {
         $ui = $this->getUi();
 
-        $vars = [
-            'title' => $this->getNode()->actionTitle($this->getNode()->getAction()),
+        $vars = array(
+            'title' => $this->m_node->actionTitle($this->getNode()->m_action),
             'content' => $this->renderAdminList(),
-            'bookmarkLink' => $this->getNode()->getAdminPageBookmarkLink(),
-            'legend' => $this->getNode()->buildAdminHeaderLegend(),
-            'filterInputs' => $this->getNode()->buildAdminHeaderInputFilters(),
-            'filterButtons' => $this->getNode()->buildAdminHeaderButtonFilters(),
-            'nodeHelp' => $this->getNode()->getAdminPageNodeHelp()
-//            'boxActions' => $this->getNode()->buildAdminHeaderBoxActions(), TODO
-        ];
+        );
 
-        return $ui->renderBox($vars);
+        $output = $ui->renderBox($vars);
+
+        return $output;
     }
 
     /**
@@ -208,11 +204,11 @@ class AdminHandler extends ActionHandler
                 continue;
             }
 
-            // reset search, so we can go back to the normal admin screen, if we want
-            $grid->setPostvar('atksearch', []);
+            // reset search so we can back to the normal admin screen if we want
+            $grid->setPostvar('atksearch', array());
             $sm = SessionManager::getInstance();
 
-            $url = $sm->sessionUrl(Tools::dispatch_url($node->atkNodeUri(), $action, [Node::PARAM_ATKSELECTOR => $node->primaryKey($records[0])]),
+            $url = $sm->sessionUrl(Tools::dispatch_url($node->atkNodeUri(), $action, array('atkselector' => $node->primaryKey($records[0]))),
                 SessionManager::SESSION_NESTED);
 
             if ($grid->isUpdate()) {
@@ -296,7 +292,7 @@ class AdminHandler extends ActionHandler
             $margin = $label && $icon ? "mr-1" : "";
             $label = '<i class="' . $icon . ' ' . $margin . '"></i>' . $label;
 
-            $link .= Tools::href(Tools::dispatch_url($this->m_node->atkNodeUri(), 'export', ['atkfilter' => $filter]),
+            $link .= Tools::href(Tools::dispatch_url($this->m_node->atkNodeUri(), 'export', array('atkfilter' => $filter)),
                 $label, SessionManager::SESSION_NESTED, false, $cssClass);
 
         }

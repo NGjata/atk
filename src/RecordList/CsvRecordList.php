@@ -24,7 +24,7 @@ use Sintattica\Atk\Core\Node;
  */
 class CsvRecordList extends CustomRecordList
 {
-    public $exportCSV = true;
+    public $m_exportcsv = true;
 
     /**
      * Creates a special Recordlist that can be used for exporting to files or to make it printable.
@@ -45,24 +45,9 @@ class CsvRecordList extends CustomRecordList
         $suppressList = '',
         $outputparams = [],
         $titlerow = true,
-        $decode = false
+        $decode = false,
+        ...$unused // keeps the signature compatible with CustomRecordList::render() under PHP 8
     ) {
-        parent::render(
-            $node,
-            $recordset,
-            '',
-            '"',
-            '"',
-            "\n",
-            '1',
-            $compression,
-            $suppressList,
-            $outputparams,
-            'csv',
-            $titlerow,
-            $decode,
-            ',',
-            null
-        );
+        parent::render($node, $recordset, '', '"', '"', "\n", '1', $compression, $suppressList, $outputparams, 'csv', $titlerow, $decode, ',', null);
     }
 }

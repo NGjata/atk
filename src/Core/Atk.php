@@ -3,13 +3,10 @@
 namespace Sintattica\Atk\Core;
 
 use Dotenv\Dotenv;
-use Exception;
-use ReflectionClass;
-use ReflectionException;
-use RuntimeException;
+use Dotenv\Loader;
+use Dotenv\Environment\DotenvFactory;
 use Sintattica\Atk\Core\Menu\Menu;
 use Sintattica\Atk\Handlers\ActionHandler;
-use Sintattica\Atk\Security\AccessLoggerServiceProvider;
 use Sintattica\Atk\Security\SecurityManager;
 use Sintattica\Atk\Security\SqlWhereclauseBlacklistChecker;
 use Sintattica\Atk\Session\SessionManager;
@@ -17,40 +14,49 @@ use Sintattica\Atk\Ui\IndexPage;
 
 class Atk
 {
-    public array $g_nodes = [];
-    public array $g_nodesClasses = [];
-    public array $g_nodeRepository = [];
-    public array $g_modules = [];
-    /** @var Module[] */
-    public array $g_moduleRepository = [];
-    public array $g_nodeHandlers = [];
-    public array $g_nodeListeners = [];
-    private string $environment;
+    const VERSION = 'v9.2-dev';
+
+    public $g_nodes = [];
+    public $g_nodesClasses = [];
+    public $g_nodeRepository = [];
+    public $g_modules = [];
+    public $g_moduleRepository = [];
+    public $g_nodeHandlers = [];
+    public $g_nodeListeners = [];
+    private $environment;
 
     /** @var static $s_instance */
     public static $s_instance;
 
-    /**
-     * @throws Exception
-     */
     public function __construct($environment, $basedir)
     {
         global $g_startTime;
         $g_startTime = microtime(true);
 
         if (static::$s_instance) {
-            throw new RuntimeException('Only one Atk app can be created');
+            throw new \RuntimeException('Only one Atk app can be created');
         }
 
         static::$s_instance = $this;
 
         $this->environment = $environment;
 
-        if (!file_exists($basedir . '/.env')) {
-            die("Cannot locate .env file in $basedir");
+        $loader = null;
+        $isBaseDirALoader = 'Dotenv\Loader' == (is_object($basedir) and get_class($basedir));
+
+        $loader = null;
+        if (file_exists($basedir . ".env")) { //If an env file is provided in the basedir
+            $loader = $basedir;
+        } else {
+            die ("cannot locate .env file");
         }
-        $dotenv = Dotenv::createImmutable($basedir);
-        $dotenv->load();
+
+        //If a loader has been provided
+        if ($loader) {
+            //load .env variables
+            $dotEnv = Dotenv::createImmutable($loader);
+            $dotEnv->load();
+        }
 
         require_once 'adodb-time.php';
 
@@ -61,13 +67,14 @@ class Atk
         }
         if (Config::getGlobal('use_atkerrorhandler', true)) {
             set_error_handler('Sintattica\Atk\Core\Tools::atkErrorHandler');
-            error_reporting(E_ALL);
+            // PHP 8.x deprecations in this ATK 9 codebase are harmless; keep them out of the UI
+            error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
             set_exception_handler('Sintattica\Atk\Core\Tools::atkExceptionHandler');
             register_shutdown_function('Sintattica\Atk\Core\Tools::atkFatalHandler');
         }
 
         // Filter the atkselector REQUEST variable for blacklisted SQL (like UNIONs)
-        SqlWhereclauseBlacklistChecker::filter_request_where_clause(Node::PARAM_ATKSELECTOR);
+        SqlWhereclauseBlacklistChecker::filter_request_where_clause('atkselector');
         SqlWhereclauseBlacklistChecker::filter_request_where_clause('atkfilter');
 
         // set locale
@@ -83,7 +90,7 @@ class Atk
             }
         }
 
-        $debug = 'Created a new Atk instance.';
+        $debug = 'Created a new Atk (' . self::VERSION . ') instance.';
         $debug .= ' Environment: ' . $environment . '.';
         $debug .= ' PHP version: ' . PHP_VERSION . '.';
 
@@ -91,26 +98,26 @@ class Atk
             $debug .= ' Server info: ' . $_SERVER['SERVER_NAME'] . ' (' . $_SERVER['SERVER_ADDR'] . ')';
         }
 
-        AccessLoggerServiceProvider::register();
+
 
         Tools::atkdebug($debug);
     }
 
     /**
      * Get new Atk object.
+     *
+     * @return static class object
      */
-    public static function getInstance(): Atk|static
+    public static function getInstance()
     {
         if (!is_object(static::$s_instance)) {
-            throw new RuntimeException('Atk instance not available');
+            throw new \RuntimeException('Atk instance not available');
         }
+
         return static::$s_instance;
     }
 
-    /**
-     * @throws ReflectionException
-     */
-    public function run(): void
+    public function run()
     {
         $sessionManager = SessionManager::getInstance();
         $sessionManager->start();
@@ -118,7 +125,6 @@ class Atk
         if (Config::getGlobal('session_autorefresh') && array_key_exists(Config::getGlobal('session_autorefresh_key'), $_GET)) {
             die(session_id());
         }
-
         $securityManager = SecurityManager::getInstance();
         $securityManager->run();
 
@@ -138,16 +144,17 @@ class Atk
         }
     }
 
-    public function runCli(): void
-    {
-        Config::setGlobal('authentication', 'none');
-        Config::setGlobal('authorization', 'none');
-        $securityManager = SecurityManager::getInstance();
-        $securityManager->run();
-        $this->bootModules();
+    /**
+     * Load all the menu items
+     */
+    public function initMenu(){
+        /** @var Menu $menuClass */
+        $menuClass = Config::getGlobal('menu');
+        $menuClass::getInstance()->appendMenuItems();
+
     }
 
-    public function bootModules(): void
+    public function bootModules()
     {
         $this->initMenu();
         foreach ($this->g_moduleRepository as $module) {
@@ -155,14 +162,13 @@ class Atk
         }
     }
 
-    /**
-     * Load all the menu items
-     */
-    public function initMenu(): void
+    public function runCli()
     {
-        /** @var Menu $menuClass */
-        $menuClass = Config::getGlobal('menu');
-        $menuClass::getInstance()->appendMenuItems();
+        Config::setGlobal('authentication', 'none');
+        Config::setGlobal('authorization', 'none');
+        $securityManager = SecurityManager::getInstance();
+        $securityManager->run();
+        $this->bootModules();
     }
 
     /**
@@ -179,7 +185,7 @@ class Atk
      *              registered.
      * @param string $section
      */
-    public function registerNode($nodeUri, $class, $actions = null, $tabs = [], $section = null): void
+    public function registerNode($nodeUri, $class, $actions = null, $tabs = [], $section = null)
     {
         if (!is_array($tabs)) {
             $section = $tabs;
@@ -207,23 +213,6 @@ class Atk
         }
     }
 
-    public function unregisterNode(string $nodeUri, ?string $section = null): void
-    {
-        if (isset($this->g_nodesClasses[$nodeUri])) {
-            unset($this->g_nodesClasses[$nodeUri]);
-        }
-
-        $module = Tools::getNodeModule($nodeUri);
-        $type = Tools::getNodeType($nodeUri);
-
-        $section ??= $module;
-
-        if (isset($this->g_nodes[$section][$module][$type])) {
-            unset($this->g_nodes[$section][$module][$type]);
-        }
-    }
-
-
     /**
      * Get an instance of a node. If an instance doesn't exist, it is created.  Note that nodes
      * are cached (unless $reset is true); multiple requests for the same node will return exactly
@@ -231,19 +220,19 @@ class Atk
      *
      * @param string $nodeUri The node uri
      * @param bool $init Initialize the node?
-     * @param string $cacheId The cache id in the node repository
-     * @param bool $reset Whether to reset the particular node in the repository
+     * @param string $cache_id The cache id in the node repository
+     * @param bool $reset Whether or not to reset the particular node in the repository
      *
      * @return Node the node
      */
-    public function atkGetNode(string $nodeUri, bool $init = true, string $cacheId = 'default', bool $reset = false): Node
+    public function atkGetNode($nodeUri, $init = true, $cache_id = 'default', $reset = false)
     {
-        if (!isset($this->g_nodeRepository[$cacheId][$nodeUri]) || !is_object($this->g_nodeRepository[$cacheId][$nodeUri]) || $reset) {
-            Tools::atkdebug("Constructing a new node $nodeUri ($cacheId)");
-            $this->g_nodeRepository[$cacheId][$nodeUri] = $this->newAtkNode($nodeUri, $init);
+        if (!isset($this->g_nodeRepository[$cache_id][$nodeUri]) || !is_object($this->g_nodeRepository[$cache_id][$nodeUri]) || $reset) {
+            Tools::atkdebug("Constructing a new node $nodeUri ($cache_id)");
+            $this->g_nodeRepository[$cache_id][$nodeUri] = $this->newAtkNode($nodeUri, $init);
         }
 
-        return $this->g_nodeRepository[$cacheId][$nodeUri];
+        return $this->g_nodeRepository[$cache_id][$nodeUri];
     }
 
     /**
@@ -253,12 +242,12 @@ class Atk
      *
      * @return Module An instance of the Module
      */
-    public function atkGetModule(string $moduleName): Module
+    public function atkGetModule($moduleName)
     {
         return $this->g_moduleRepository[$moduleName];
     }
 
-    public function isModule(string $moduleName): bool
+    public function isModule($moduleName)
     {
         return array_key_exists($moduleName, $this->g_moduleRepository) && is_object($this->g_moduleRepository[$moduleName]);
     }
@@ -271,7 +260,7 @@ class Atk
      *
      * @return Node new node object
      */
-    public function newAtkNode(string $nodeUri, bool $init = true): Node
+    public function newAtkNode($nodeUri, $init = true)
     {
         $nodeClass = $this->g_nodesClasses[$nodeUri];
 
@@ -292,21 +281,22 @@ class Atk
      * @param string $moduleName name of the module.
      *
      * @return string The path to the module.
-     * @throws ReflectionException
      */
-    public function moduleDir(string $moduleName): string
+    public function moduleDir($moduleName)
     {
         $modules = $this->g_modules;
         if (isset($modules[$moduleName])) {
             $class = $modules[$moduleName];
 
-            $reflection = new ReflectionClass($class);
+            $reflection = new \ReflectionClass($class);
             $dir = dirname($reflection->getFileName());
-            if (!str_ends_with($dir, '/')) {
+            if (substr($dir, -1) != '/') {
                 $dir .= '/';
             }
+
             return $dir;
         }
+
         return '';
     }
 
@@ -316,9 +306,9 @@ class Atk
      * @param string $nodeUri the uri of the node
      * @param string $action the node action
      *
-     * @return ActionHandler|null full class or object instance (subclass of ActionHandler) or NULL if no handler exists for the specified action
+     * @return ActionHandler full class or object instance (subclass of ActionHandler) or NULL if no handler exists for the specified action
      */
-    public function atkGetNodeHandler(string $nodeUri, string $action): ?ActionHandler
+    public function atkGetNodeHandler($nodeUri, $action)
     {
         if (isset($this->g_nodeHandlers[$nodeUri][$action])) {
             $handler = $this->g_nodeHandlers[$nodeUri][$action];
@@ -344,11 +334,11 @@ class Atk
      *
      * @param string $nodeUri the uri of the node (* matches all)
      * @param string $action the node action
-     * @param string $handler handler functionname or object (is_subclass_of atkActionHandler)
+     * @param string /atkActionHandler $handler handler functionname or object (is_subclass_of atkActionHandler)
      *
      * @return bool true if there is no known handler
      */
-    public function atkRegisterNodeHandler($nodeUri, $action, $handler): bool
+    public function atkRegisterNodeHandler($nodeUri, $action, $handler)
     {
         if (isset($this->g_nodeHandlers[$nodeUri][$action])) {
             return false;
@@ -359,9 +349,9 @@ class Atk
         return true;
     }
 
-    public function registerModule($moduleClass): void
+    public function registerModule($moduleClass)
     {
-        $reflection = new ReflectionClass($moduleClass);
+        $reflection = new \ReflectionClass($moduleClass);
         $name = $reflection->getStaticPropertyValue('module');
         $this->g_modules[$name] = $moduleClass;
 

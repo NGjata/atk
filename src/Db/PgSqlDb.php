@@ -13,6 +13,7 @@ use Sintattica\Atk\Utils\Debugger;
  */
 class PgSqlDb extends Db
 {
+    /* identification */
     public $m_type = 'PgSql';
     public $m_vendor = 'postgresql';
 
@@ -21,34 +22,34 @@ class PgSqlDb extends Db
      */
     public function __construct()
     {
-        parent::__construct();
+        /* do nothing */
 
-        // force case-insensitive searching and ordering
+        // force case insensitive searching and ordering
         $this->m_force_ci = true;
     }
 
-    public function doConnect($host, $user, $password, $database, $port, $charset): int
+    public function doConnect($host, $user, $password, $database, $port, $charset)
     {
         if (empty($this->m_link_id)) {
             $conn = [];
 
             if (!empty($host)) {
-                $conn[] = 'host=' . $host;
+                $conn[] = 'host='.$host;
             }
 
             if (!empty($user)) {
-                $conn[] = 'user=' . $user;
+                $conn[] = 'user='.$user;
             }
             if (!empty($password)) {
-                $conn[] = 'password=' . $password;
+                $conn[] = 'password='.$password;
             }
 
             if (!empty($database)) {
-                $conn[] = 'dbname=' . $database;
+                $conn[] = 'dbname='.$database;
             }
 
             if (!empty($port)) {
-                $conn[] = 'port=' . $port;
+                $conn[] = 'port='.$port;
             }
 
             if (!empty($charset)) {
@@ -81,7 +82,7 @@ class PgSqlDb extends Db
 
     /**
      * TODO FIXME: I don't know what errormessges postgresql gives,
-     *  so this function only returns self::DB_UNKNOWNERROR for now.
+     * so this function only returns self::DB_UNKNOWNERROR for now.
      *
      * @param mixed $error
      *
@@ -89,7 +90,7 @@ class PgSqlDb extends Db
      */
     public function _translateError($error = null)
     {
-        return parent::_translateError($error);
+        return self::DB_UNKNOWNERROR;
     }
 
     /**
@@ -125,13 +126,13 @@ class PgSqlDb extends Db
     public function next_record()
     {
         /* goto next record */
-        $this->m_record = @pg_fetch_array($this->m_query_id, null, PGSQL_ASSOC);
+        $this->m_record = @pg_fetch_array($this->m_query_id, $this->m_row, PGSQL_ASSOC);
         ++$this->m_row;
 
         /* are we there? */
         $result = is_array($this->m_record);
         if (!$result && $this->m_auto_free) {
-            @pg_free_result($this->m_query_id);
+            @pg_freeresult($this->m_query_id);
             $this->m_query_id = 0;
         }
 
@@ -149,12 +150,7 @@ class PgSqlDb extends Db
      */
     public function seek($position = 0)
     {
-        $result = pg_result_seek($this->m_query_id, $position);
-        if ($result) {
-            $this->m_row = $position;
-        } else {
-            $this->halt("seek($position) failed: result has " . $this->num_rows() . ' rows');
-        }
+        $this->m_row = $position;
     }
 
     /**
@@ -212,18 +208,29 @@ class PgSqlDb extends Db
      */
     public function affected_rows()
     {
-        return @pg_affected_rows($this->m_query_id);
+        return @pg_affected_rows($this->m_link_id);
     }
 
     /**
      * Evaluate the result; how many rows
      * were affected by the query.
      *
-     * @return int The number of affected rows
+     * @return number of affected rows
      */
     public function num_rows()
     {
-        return @pg_num_rows($this->m_query_id);
+        return @pg_num_fields($this->m_query_id);
+    }
+
+    /**
+     * Evaluatie the result; how many fields
+     * where affected by the query.
+     *
+     * @return number of affected fields
+     */
+    public function num_fields()
+    {
+        return @pg_numfields($this->m_query_id);
     }
 
     /**
@@ -236,9 +243,10 @@ class PgSqlDb extends Db
      */
     public function nextid($sequence)
     {
+
         /* connect first */
         if ($this->connect() == self::DB_SUCCESS) {
-            $sequencename = Config::getGlobal('database_sequenceprefix') . $sequence . Config::getGlobal('database_sequencesuffix');
+            $sequencename = Config::getGlobal('database_sequenceprefix').$sequence.Config::getGlobal('database_sequencesuffix');
             /* get sequence number and increment */
             $query = "SELECT nextval('$sequencename') AS nextid";
 
@@ -250,7 +258,7 @@ class PgSqlDb extends Db
             // should be used to specify the sequence prefix.
             if (empty($id)) {
                 /* get sequence number and increment */
-                $query = "SELECT nextval('" . $sequence . "') AS nextid";
+                $query = "SELECT nextval('".$sequence."') AS nextid";
 
                 /* execute query */
                 $id = @pg_query($this->m_link_id, $query);
@@ -259,32 +267,36 @@ class PgSqlDb extends Db
             /* error? */
             if (empty($id)) {
                 /* create sequence */
-                $query = 'CREATE SEQUENCE ' . $sequencename;
+                $query = 'CREATE SEQUENCE '.$sequencename;
                 @pg_query($this->m_link_id, $query);
 
                 /* try again */
-                $query = "SELECT nextval('" . $sequencename . "') AS nextid";
+                $query = "SELECT nextval('".$sequencename."') AS nextid";
 
                 $id = @pg_query($this->m_link_id, $query) or $this->halt("cannot get nextval() of sequence '$sequencename'");
 
+                /* empty? */
                 if (empty($id)) {
                     return 0;
                 }
             }
 
-            return @pg_fetch_result($id, 0, 'nextid');
-        } else {
-            $this->halt('cannot connect to ' . $this->m_host);
+            /* get nextid */
+            $result = @pg_fetch_result($id, 0, 'nextid');
+
+            /* return id */
+
+            return $result;
         }
 
         return 0;
     }
 
     /**
-     * Return the metadata of a certain table.
+     * Return the meta data of a certain table.
      *
      * @param string $table the table name
-     * @param bool $full all metadata or not
+     * @param bool $full all meta data or not
      *
      * @return array with meta data
      */
@@ -299,53 +311,54 @@ class PgSqlDb extends Db
             $schema_condition = "AND n.nspname = '$schema' ";
             $schema_join = ' LEFT JOIN pg_namespace n ON (n.oid = c.relnamespace)';
         } else {
-            // no period in the name, so there is no schema
+            //no period in the name, so there is no schema
             $schema_condition = '';
             $schema_join = '';
         }
 
-        // Get metadata from system tables.
+        // Get meta data from system tables.
         // See developer manual (www.postgresql.org)
         // for system table specification.
         $sql = "SELECT
-                a.attnum AS i,
-                a.attname AS name,
-                t.typname AS type,
-                (CASE
-                    WHEN LOWER(t.typname) = 'varchar' AND a.attlen = -1 THEN a.atttypmod - 4
-                    WHEN a.atttypid = 21 /*int2*/ THEN 5
-                    WHEN a.atttypid = 23 /*int4*/ THEN 10
-                    WHEN a.atttypid = 20 /*int8*/ THEN 19
-                    WHEN a.atttypid = 1700 /*numeric*/ THEN
-                        CASE WHEN a.atttypmod = -1 THEN null
-                        ELSE ((atttypmod - 4) >> 16) & 65535
-                        END
-                    ELSE a.attlen END
-                ) AS length,
-                (CASE WHEN a.attnotnull THEN 1 ELSE 0 END) AS is_not_null,
-                (
-                    SELECT COUNT(1)
-                    FROM pg_index i
-                    WHERE i.indrelid = c.oid
-                    AND i.indisprimary = true
-                    AND a.attnum IN (
-                    i.indkey[0], i.indkey[1], i.indkey[2],
-                    i.indkey[3], i.indkey[4], i.indkey[5],
-                    i.indkey[6], i.indkey[7], i.indkey[8]
-                    )
-                    LIMIT 1
-                ) AS is_primary,
-                (
-                    SELECT COUNT(1)
-                    FROM pg_index i
-                    WHERE i.indrelid = c.oid
-                    AND i.indisunique = true
-                    AND i.indnatts = 1
-                    AND i.indkey[0] = a.attnum
-                    LIMIT 1
-                ) AS is_unique,          
-                (CASE WHEN a.attidentity = 'd' AND a.attnotnull = true THEN 1 ELSE 0 END) AS is_auto_inc,
-                '' AS default
+          a.attnum AS i,
+          a.attname AS name,
+          t.typname AS type,
+          (CASE
+            WHEN LOWER(t.typname) = 'varchar' AND a.attlen = -1 THEN a.atttypmod - 4
+            WHEN a.atttypid = 21 /*int2*/ THEN 5
+            WHEN a.atttypid = 23 /*int4*/ THEN 10
+            WHEN a.atttypid = 20 /*int8*/ THEN 19
+            WHEN a.atttypid = 1700 /*numeric*/ THEN
+              CASE WHEN a.atttypmod = -1 THEN null
+              ELSE ((atttypmod - 4) >> 16) & 65535
+              END
+           ELSE a.attlen END
+          ) AS length,
+          (CASE WHEN a.attnotnull THEN 1 ELSE 0 END) AS is_not_null,
+          (
+            SELECT COUNT(1)
+            FROM pg_index i
+            WHERE i.indrelid = c.oid
+            AND i.indisprimary = true
+            AND a.attnum IN (
+              i.indkey[0], i.indkey[1], i.indkey[2],
+              i.indkey[3], i.indkey[4], i.indkey[5],
+              i.indkey[6], i.indkey[7], i.indkey[8]
+            )
+            LIMIT 1
+          ) AS is_primary,
+          (
+            SELECT COUNT(1)
+            FROM pg_index i
+            WHERE i.indrelid = c.oid
+            AND i.indisunique = true
+            AND i.indnatts = 1
+            AND i.indkey[0] = a.attnum
+            LIMIT 1
+          ) AS is_unique,
+          (CASE WHEN ad.adsrc LIKE 'nextval(%::text)' THEN 1 ELSE 0 END) AS is_auto_inc,
+          (CASE WHEN ad.adsrc LIKE 'nextval(%::text)' THEN SUBSTRING(ad.adsrc, '''(.*?)''') END) AS sequence,
+          (CASE WHEN t.typname = 'varchar' THEN SUBSTRING(ad.adsrc FROM '^''(.*)''.*$') ELSE ad.adsrc END) AS default
         FROM pg_class c
         JOIN pg_attribute a ON (a.attrelid = c.oid AND a.attnum > 0)
         JOIN pg_type t ON (t.oid = a.atttypid)
@@ -354,11 +367,6 @@ class PgSqlDb extends Db
         WHERE c.relname = '$table'
         $schema_condition
         ORDER BY a.attnum";
-
-        // TODO: sembra che non si riesca più a ricavare questi valori...
-        /*(CASE WHEN ad.adsrc LIKE 'nextval(%::text)' THEN 1 ELSE 0 END) AS is_auto_inc,
-          (CASE WHEN ad.adsrc LIKE 'nextval(%::text)' THEN SUBSTRING(ad.adsrc, '''(.*?)''') END) AS sequence,
-          (CASE WHEN t.typname = 'varchar' THEN SUBSTRING(ad.adsrc FROM '^''(.*)''.*$') ELSE ad.adsrc END) AS default*/
 
         $meta = [];
         $rows = $this->getRows($sql);
@@ -372,19 +380,19 @@ class PgSqlDb extends Db
             $meta[$i]['flags'] = ($row['is_primary'] == 1 ? Db::MF_PRIMARY : 0) | ($row['is_unique'] == 1 ? Db::MF_UNIQUE : 0) | ($row['is_not_null'] == 1 ? Db::MF_NOT_NULL : 0) | ($row['is_auto_inc'] == 1 ? Db::MF_AUTO_INCREMENT : 0);
 
             if ($row['is_auto_inc'] == 1) {
-                $meta[$i]['sequence'] = $row['sequence'] ?? null; // TODO
+                $meta[$i]['sequence'] = $row['sequence'];
             } else {
                 if (Tools::atk_strlen($row['default']) > 0) {
                     // date/time/datetime
-                    if (strtolower($row['default']) == 'now' && in_array($meta[$i]['gentype'], ['date', 'time', 'datetime'])) {
+                    if (strtolower($row['default']) == 'now' && in_array($meta[$i]['gentype'], array('date', 'time', 'datetime'))) {
                         $meta[$i]['default'] = 'NOW';
                     } // numbers
                     else {
-                        if (in_array($meta[$i]['gentype'], ['number', 'decimal'])) {
+                        if (in_array($meta[$i]['gentype'], array('number', 'decimal'))) {
                             $meta[$i]['default'] = $row['default'];
                         } // strings
                         else {
-                            if (in_array($meta[$i]['gentype'], ['string', 'text'])) {
+                            if (in_array($meta[$i]['gentype'], array('string', 'text'))) {
                                 $meta[$i]['default'] = $row['default'];
                             } // boolean
                             else {
@@ -448,7 +456,7 @@ class PgSqlDb extends Db
         if ($offset >= 0 && $limit >= 0) {
             $query .= " LIMIT $limit OFFSET $offset";
         }
-        Tools::atkdebug('atkpgsqldb.query(): ' . $query);
+        Tools::atkdebug('atkpgsqldb.query(): '.$query);
 
         /* connect to database */
         if ($this->connect() == self::DB_SUCCESS) {
@@ -487,7 +495,7 @@ class PgSqlDb extends Db
      */
     public function tableExists($table)
     {
-        $res = $this->getRows("SELECT relname FROM pg_class WHERE relkind = 'r' AND UPPER(relname) = UPPER('" . $table . "')");
+        $res = $this->getRows("SELECT relname FROM pg_class WHERE relkind = 'r' AND UPPER(relname) = UPPER('".$table."')");
 
         return Tools::count($res) == 0 ? false : true;
     }
@@ -502,16 +510,16 @@ class PgSqlDb extends Db
 
     public function savepoint($name)
     {
-        Tools::atkdebug(get_class($this) . "::savepoint $name");
-        $this->_query('SAVEPOINT ' . $name, true);
+        Tools::atkdebug(get_class($this)."::savepoint $name");
+        $this->_query('SAVEPOINT '.$name, true);
     }
 
     public function rollback($savepoint = '')
     {
         if ($this->m_link_id) {
             if (!empty($savepoint)) {
-                Tools::atkdebug(get_class($this) . "::rollback (rollback to savepoint $savepoint)");
-                $this->_query('ROLLBACK TO SAVEPOINT ' . $savepoint, true);
+                Tools::atkdebug(get_class($this)."::rollback (rollback to savepoint $savepoint)");
+                $this->_query('ROLLBACK TO SAVEPOINT '.$savepoint, true);
             } else {
                 $this->_query('ROLLBACK', true);
             }
@@ -526,7 +534,7 @@ class PgSqlDb extends Db
      */
     public function getSearchModes()
     {
-        return [
+        return array(
             'exact',
             'substring',
             'wildcard',
@@ -535,7 +543,7 @@ class PgSqlDb extends Db
             'greaterthanequal',
             'lessthan',
             'lessthanequal',
-            'between'
-        ];
+            'between',
+        );
     }
 }

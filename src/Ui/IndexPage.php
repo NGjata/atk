@@ -2,19 +2,16 @@
 
 namespace Sintattica\Atk\Ui;
 
-use ReflectionException;
 use Sintattica\Atk\Core\AdminLTE;
 use Sintattica\Atk\Core\Atk;
 use Sintattica\Atk\Core\Config;
-use Sintattica\Atk\Core\Menu\ActionItem;
 use Sintattica\Atk\Core\Menu\Menu;
 use Sintattica\Atk\Core\Menu\MenuBase;
-use Sintattica\Atk\Core\Menu\UrlItem;
 use Sintattica\Atk\Core\Node;
 use Sintattica\Atk\Core\Tools;
 use Sintattica\Atk\Security\SecurityManager;
 use Sintattica\Atk\Session\SessionManager;
-use Smarty\Exception;
+use SmartyException;
 
 /**
  * Class that generates an index page.
@@ -82,9 +79,7 @@ class IndexPage
 
     /**
      * Generate the page.
-     *
-     * @throws ReflectionException
-     * @throws Exception
+     * @throws SmartyException
      */
     public function generate()
     {
@@ -92,42 +87,37 @@ class IndexPage
             /** @var Menu $menuClass */
             $menuClass = Config::getGlobal('menu');
             $menuObj = $menuClass::getInstance();
-            $username = $this->m_username ?: $this->m_user['name'];
-            if ($username) {
-                if (Config::getGlobal('menu_show_user')) {
-                    $this->addUsernameNavbarLink($menuObj, $username);
-                }
+            $user = $this->m_username ?: $this->m_user['name'];
 
-                if (Config::getGlobal('menu_show_logout_link')) {
-                    $this->addLogoutNavbarLink($menuObj);
-                }
+            if (Config::getGlobal('menu_show_user') && $user) {
+                $url = $this->generateUserUrl();
+                $menuObj->addMenuItem(MenuBase::ATK_MENU_USERNAME_PREFIX . $user, $url, 'main', true, 0, '', '', false, MenuBase::MENU_NAV_RIGHT);
+            }
+
+            if (Config::getGlobal('menu_show_logout_link') && $user) {
+                $menuObj->addMenuItem('<span class="fas fa-sign-out-alt"></span>',
+                    Config::getGlobal('dispatcher') . '?atklogout=1', 'main', true, 0, '', '', false, MenuBase::MENU_NAV_RIGHT
+                );
             }
 
             $this->m_adminLte->setNavBarDevMode($_SERVER['APP_ENV'] !== 'prod');
 
-            // render navbar
-            $navbarTpl = Config::getGlobal('menu_hide_sidebar') === true ? 'navbar_without_sidebar' : 'navbar';
-            $navbar = $this->m_ui->render("menu/$navbarTpl.tpl", [
-                'menu' => $menuObj->getMenu(), // formatted smarty menu as ['left', 'right','sidebar']
+            $navbar = $this->m_ui->render('menu/navbar.tpl', [
+                'menu' => $menuObj->getMenu(), //formatted smarty menu as ['left', 'right','sidebar']
                 'main_header_classes' => $this->m_adminLte->getMainHeaderClasses(),
-                'dispatcher' => Config::getGlobal('dispatcher'),
-                'brand_logo' => Config::getGlobal('brand_logo')
             ]);
 
             $this->m_page->addContent($navbar);
 
-            // render sidebar
-            $sidebar = $this->m_ui->render('menu/sidebar.tpl', [
+            $sidebar = $this->m_ui->render("menu/sidebar.tpl", [
                 'title' => ($this->m_title != '' ?: Tools::atktext('app_title')),
                 'app_title' => Tools::atktext('app_title'),
-                'menu' => $menuObj->getMenu(), // formatted smarty menu as ['left', 'right','sidebar']
+                'menu' => $menuObj->getMenu(), //formatted smarty menu as ['left', 'right','sidebar']
                 'nav_sidebar_classes' => $this->m_adminLte->getNavSidebarClasses(),
                 'sidebar_classes' => $this->m_adminLte->getSidebarClasses(),
                 'brand_text_style' => $this->m_adminLte->getBrandTextStyle(),
                 'menu_accordion' => $this->m_adminLte->isMenuAccordion(),
-                'collapse_sidebar' => $this->m_adminLte->isCollapsedSidebar(),
-                'dispatcher' => Config::getGlobal('dispatcher'),
-                'brand_logo' => Config::getGlobal('brand_logo')
+                'collapse_sidebar' => $this->m_adminLte->isCollapsedSidebar()
             ]);
 
             $this->m_page->addContent($sidebar);
@@ -143,10 +133,26 @@ class IndexPage
         $bodyprops = $this->m_extrabodyprops != '' ?: null;
         $headers = $this->m_extraheaders != '' ?: null;
 
-        $content = $this->m_page->render($title, $this->m_flags, $bodyprops, $headers, $this->m_adminLte->getGeneralBodyClasses());
+        $content = $this->m_page->render($title, $this->m_flags, $bodyprops, $headers, $this->m_adminLte->getGeneralBodyClassess());
 
         $this->m_output->output($content);
         $this->m_output->outputFlush();
+    }
+
+    private function generateUserUrl(): string
+    {
+        $url = '';
+        if (Config::getGlobal('menu_enable_user_link')) {
+            $userTable = Config::getGlobal('auth_usertable');
+            $userPk = Config::getGlobal('auth_userpk');
+            $userId = $this->m_user[$userPk];
+            $atkSelector = "$userTable.$userPk=$userId";
+            $url = SessionManager::getInstance()->sessionUrl(
+                Tools::dispatch_url(Config::getGlobal('auth_usernode'), 'view', ['atkselector' => $atkSelector]),
+                SessionManager::SESSION_NESTED
+            );
+        }
+        return $url;
     }
 
     /**
@@ -154,7 +160,7 @@ class IndexPage
      *
      * @param string $title
      */
-    public function setTitle(string $title)
+    public function setTitle($title)
     {
         $this->m_title = $title;
     }
@@ -164,7 +170,7 @@ class IndexPage
      *
      * @param string $extrabodyprops
      */
-    public function setBodyprops(string $extrabodyprops)
+    public function setBodyprops($extrabodyprops)
     {
         $this->m_extrabodyprops = $extrabodyprops;
     }
@@ -174,7 +180,7 @@ class IndexPage
      *
      * @param string $extraheaders
      */
-    public function setExtraheaders(string $extraheaders)
+    public function setExtraheaders($extraheaders)
     {
         $this->m_extraheaders = $extraheaders;
     }
@@ -184,7 +190,7 @@ class IndexPage
      *
      * @param string $username
      */
-    public function setUsername(string $username)
+    public function setUsername($username)
     {
         $this->m_username = $username;
     }
@@ -203,8 +209,8 @@ class IndexPage
             $destination = '';
             if (isset($ATK_VARS['atknodeuri']) && isset($ATK_VARS['atkaction'])) {
                 $destination = '&atknodeuri=' . $ATK_VARS['atknodeuri'] . '&atkaction=' . $ATK_VARS['atkaction'];
-                if (isset($ATK_VARS[Node::PARAM_ATKSELECTOR])) {
-                    $destination .= '&' . Node::PARAM_ATKSELECTOR . '=' . $ATK_VARS[Node::PARAM_ATKSELECTOR];
+                if (isset($ATK_VARS['atkselector'])) {
+                    $destination .= '&atkselector=' . $ATK_VARS['atkselector'];
                 }
             }
 
@@ -217,7 +223,6 @@ class IndexPage
             $this->m_page->addContent($box);
 
             $this->m_output->output($this->m_page->render(Tools::atktext('title_session_expired'), true));
-
         } else {
 
             // Create node
@@ -266,7 +271,9 @@ class IndexPage
      */
     public function setDefaultDestination(array $destination)
     {
-        $this->m_defaultDestination = $destination;
+        if (is_array($destination)) {
+            $this->m_defaultDestination = $destination;
+        }
     }
 
     /**
@@ -275,7 +282,6 @@ class IndexPage
      *
      * @param array $postvars The request variables for the node.
      * @param Node $node
-     * @throws Exception
      */
     public function loadDispatchPage($postvars, Node $node)
     {
@@ -294,23 +300,21 @@ class IndexPage
             $node->callHandler($node->m_action);
             $id = '';
 
-            if (isset($node->m_postvars[Node::PARAM_ATKSELECTOR]) && is_array($node->m_postvars[Node::PARAM_ATKSELECTOR])) {
+            if (isset($node->m_postvars['atkselector']) && is_array($node->m_postvars['atkselector'])) {
                 $atkSelectorDecoded = [];
 
-                foreach ($node->m_postvars[Node::PARAM_ATKSELECTOR] as $rowIndex => $selector) {
+                foreach ($node->m_postvars['atkselector'] as $rowIndex => $selector) {
                     list(, $pk) = explode('=', $selector);
                     $atkSelectorDecoded[] = $pk;
                     $id = implode(',', $atkSelectorDecoded);
                 }
             } else {
-                if ($atkSelector = Tools::atkArrayNvl($node->m_postvars, Node::PARAM_ATKSELECTOR)) {
-                    list(, $id) = explode('=', $atkSelector);
-                }
+                list(, $id) = explode('=', Tools::atkArrayNvl($node->m_postvars, 'atkselector', '='));
             }
 
             $page->register_hiddenvars(array(
                 'atknodeuri' => $node->m_module . '.' . $node->m_type,
-                Node::PARAM_ATKSELECTOR => str_replace("'", '', $id),
+                'atkselector' => str_replace("'", '', $id),
             ));
         } else {
             $page->addContent($this->accessDeniedPage($node->getType()));
@@ -318,21 +322,21 @@ class IndexPage
     }
 
     /**
-     * Render generic access denied page.
+     * Render a generic access denied page.
      *
      * @param string $nodeType
      * @return string A complete html page with generic access denied message.
-     * @throws Exception
+     * @throws SmartyException
      */
     private function accessDeniedPage(string $nodeType): string
     {
         $content = '<br><br>' . Tools::atktext('error_node_action_access_denied', '', $nodeType) . '<br><br><br>';
 
         $blocks = [
-            $this->m_ui->renderBox([
+            $this->m_ui->renderBox(array(
                 'title' => Tools::atktext('access_denied'),
                 'content' => $content,
-            ]),
+            )),
         ];
 
         return $this->m_ui->render('actionpage.tpl', [
@@ -340,56 +344,5 @@ class IndexPage
             'title' => Tools::atktext('access_denied'),
             'footer' => Footer::getInstance()->render()
         ]);
-    }
-
-    public function getPage(): ?Page
-    {
-        return $this->m_page;
-    }
-
-    public function getUi(): ?Ui
-    {
-        return $this->m_ui;
-    }
-
-    /**
-     * @throws ReflectionException
-     */
-    private function addUsernameNavbarLink(MenuBase $menuObj, string $username): void
-    {
-        $actionItem = new ActionItem(MenuBase::ATK_MENU_USERNAME_PREFIX . $username);
-
-        $userPk = Config::getGlobal('auth_userpk');
-        if (isset($this->m_user[$userPk])) {
-            // logged user is NOT atk administrator
-            $userId = $this->m_user[$userPk];
-            $userTable = Config::getGlobal('auth_usertable');
-            $userAtkSelector = "$userTable.$userPk=$userId";
-            $userNode = Atk::getInstance()->atkGetNode(Config::getGlobal('auth_usernode'));
-            $userRecord = $userNode->select($userAtkSelector)->getFirstRow();
-            $action = $userNode->allowed('edit', $userRecord) ? 'edit' : 'view';
-            $actionItem->setNodeUri($userNode->atkNodeUri())
-                ->setAction($action)
-                ->addUrlParam(Node::PARAM_ATKSELECTOR, $userAtkSelector)
-                ->setRaw(true)
-                ->setTooltip(Tools::atktext('user'))
-                ->setPosition(MenuBase::MENU_NAV_RIGHT)
-                ->hideIcon();
-        }
-
-        $menuObj->add($actionItem);
-    }
-
-    /**
-     * @throws ReflectionException
-     */
-    private function addLogoutNavbarLink(MenuBase $menuObj): void
-    {
-        $logoutUrl = Config::getGlobal('dispatcher') . '?atklogout=1';
-        $menuObj->add((new UrlItem(Tools::atktext('logout'), $logoutUrl))
-            ->setPosition(MenuBase::MENU_NAV_RIGHT)
-            ->setIcon(MenuBase::ICON_LOGOUT)
-            ->hideName()
-            ->setTooltip(Tools::atktext('logout')));
     }
 }

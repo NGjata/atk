@@ -2,7 +2,6 @@
 
 namespace Sintattica\Atk\Security;
 
-use Exception;
 use Sintattica\Atk\Core\Tools;
 
 /**
@@ -120,7 +119,6 @@ class SqlWhereclauseBlacklistChecker
      *
      * @param string $variable
      *
-     * @throws Exception
      * @example filter_request_where_clause('atkselector')
      */
     public static function filter_request_where_clause($variable)

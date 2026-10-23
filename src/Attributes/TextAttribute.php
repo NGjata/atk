@@ -6,17 +6,47 @@ use Sintattica\Atk\Utils\BrowserInfo;
 use Sintattica\Atk\Core\Tools;
 
 /**
- * The TextAttribute class represents an attribute of a node
+ * The atkTextAttribute class represents an attribute of a node
  * that is a big text field.
  *
  * @author Ivo Jansch <ivo@achievo.org>
  *
- * TODO: autoadjust needs to be modified as not every character == 1 column,
+ * @todo autadjust needs to be modified as not every character == 1 column,
  *       perhaps forcing every textattribute to use a non-proportional font?
  */
 class TextAttribute extends Attribute
 {
+    /**
+     * Display long text in row.
+     * You can specify maxChars for the length of the text to show.
+     */
+    public const MODE_INLINE = 'inline';
+
+    /**
+     * Display the text stretched in height.
+     * You must specify a min-width.
+     * You can specify a max-height in this display mode
+     */
+    public const MODE_SCROLL = 'scroll';
+
+    /**
+     * Display the text as wrapped. As default, it truncates the text at
+     * 200 chars in length, it can be set with setMaxChars()
+     */
+    public const MODE_DEFAULT = 'default';
+
+    /**
+     * If display mode is Scroll than we can specify a max height to start scrolling
+     * If the display mode is INLINE then we can specify a max number of characters to show.
+     * If the display mode is DEFAULT then the inline mode with max 200 chars is set.
+     */
+    private const MODES_ALLOWED = [self::MODE_DEFAULT, self::MODE_SCROLL, self::MODE_INLINE];
+
+    private $displayMode = self::MODE_DEFAULT;
     private $wrapMode = 'soft';
+    private $minWidth = "200px";
+    private $maxHeight = "200px";
+    private $maxChars = null;
 
     // number of rows of the edit box
     public $m_rows = 10;
@@ -26,14 +56,11 @@ class TextAttribute extends Attribute
     /**
      * @param string $name Name of the attribute
      * @param int $flags Flags for this attribute
-     * @param array $options : rows, cols, autoadjust (deprecated, use functions instead)
+     * @param array $options : rows, cols, autoadjust
      */
-    public function __construct($name, $flags = 0, array $options = [])
+    public function __construct($name, $flags = 0, $options = [])
     {
         parent::__construct($name, $flags);
-
-        $this->setMinWidth('200px');
-        $this->setMaxHeight('200px');
 
         if (isset($options['rows'])) {
             $this->m_rows = $options['rows'];
@@ -52,7 +79,7 @@ class TextAttribute extends Attribute
      *
      * @return string wrap mode
      */
-    public function getWrapMode(): string
+    public function getWrapMode()
     {
         return $this->wrapMode;
     }
@@ -62,14 +89,49 @@ class TextAttribute extends Attribute
      *
      * @param string $mode wrap mode ('soft', 'hard' or 'off')
      */
-    public function setWrapMode(string $mode): self
+    public function setWrapMode($mode)
     {
         $this->wrapMode = $mode;
-        return $this;
     }
+
+
+    public function display($record, $mode)
+    {
+        $display = parent::display($record, $mode);
+
+        if ($mode == 'list') {
+            $style = "min-width: {$this->minWidth};";
+            $classes = '';
+
+            switch ($this->displayMode) {
+                case self::MODE_INLINE:
+                    if ($this->maxChars) {
+                        $record[$this->fieldName()] = $record[$this->fieldName()] != null ? Tools::truncateHTML($record[$this->fieldName()], $this->maxChars, '...') : null;
+                        $display = parent::display($record, $mode);
+                    }
+                    break;
+                case self::MODE_SCROLL:
+                    $classes = 'text-wrap';
+                    $style .= " max-height: {$this->maxHeight}; overflow-y: auto; ";
+                    break;
+                default:
+                    $classes = 'text-wrap';
+                    $maxChars = $this->maxChars ?: '200';
+                    $record[$this->fieldName()] = $record[$this->fieldName()] != null ? Tools::truncateHTML($record[$this->fieldName()], $maxChars, '...') : null;
+                    $display = parent::display($record, $mode);
+
+            }
+
+            $display = "<div class='$classes' style='$style'>$display</div>";
+        }
+
+        return $display;
+    }
+
 
     public function edit($record, $fieldprefix, $mode)
     {
+
         $id = $this->getHtmlId($fieldprefix);
         $name = $this->getHtmlName($fieldprefix);
 
@@ -112,7 +174,7 @@ class TextAttribute extends Attribute
             return $result;
         }
 
-        $text = $record[$this->fieldName()] ?? '';
+        $text = isset($record[$this->fieldName()]) ? $record[$this->fieldName()] : '';
 
         if ($this->m_cols != 0) {
             $cols = $this->m_cols;
@@ -147,7 +209,7 @@ class TextAttribute extends Attribute
         return $result;
     }
 
-    public function addToQuery($query, $tablename = '', $fieldaliasprefix = '', &$record = [], $level = 0, $mode = '')
+    public function addToQuery($query, $tablename = '', $fieldaliasprefix = '', &$record, $level = 0, $mode = '')
     {
         if ($mode == 'add' || $mode == 'update') {
             $query->addField($this->fieldName(), $this->value2db($record), '', '', !$this->hasFlag(self::AF_NO_QUOTES), true);
@@ -159,31 +221,31 @@ class TextAttribute extends Attribute
     /**
      * Add's slashes to the string for the database.
      *
-     * @param array $record Array with values
+     * @param array $rec Array with values
      *
      * @return string with slashes
      */
-    public function value2db(array $record)
+    public function value2db(array $rec)
     {
         $db = $this->getDb();
         if ($db->getType() != 'oci9' || $this->dbFieldType() != 'text') {
-            return $db->escapeSQL($record[$this->fieldName()]);
+            return $db->escapeSQL($rec[$this->fieldName()]);
         } else {
-            return $record[$this->fieldName()];
+            return $rec[$this->fieldName()];
         } //CLOB in oci9 don't need quotes to be escaped EVIL HACK! THIS IS NOT ATKTEXTATTRIBUTE's PROBLEM!
     }
 
     /**
      * Removes slashes from the string.
      *
-     * @param array $record Array with values
+     * @param array $rec Array with values
      *
      * @return string without slashes
      */
-    public function db2value($record)
+    public function db2value($rec)
     {
-        if (isset($record[$this->fieldName()])) {
-            return $record[$this->fieldName()];
+        if (isset($rec[$this->fieldName()])) {
+            return $rec[$this->fieldName()];
         }
 
         return null;
@@ -213,11 +275,12 @@ class TextAttribute extends Attribute
      * Fetch the metadata about this attrib from the table metadata, and
      * process it.
      *
-     * @param array $metadata The table metadata from the table for this attribute.
+     * @param array $metadata The table metadata from the table for this
+     *                        attribute.
      */
     public function fetchMeta($metadata)
     {
-        $this->m_dbfieldtype = $metadata[$this->fieldName()]['gentype'] ?? null;
+        $this->m_dbfieldtype = isset($metadata[$this->fieldName()]['gentype']) ? $metadata[$this->fieldName()]['gentype'] : null;
         if ($this->m_dbfieldtype == 'string') {
             parent::fetchMeta($metadata);
         }
@@ -263,7 +326,7 @@ class TextAttribute extends Attribute
     }
 
     /**
-     * @return int
+     * @return int|mixed
      */
     public function getMRows(): int
     {
@@ -271,28 +334,28 @@ class TextAttribute extends Attribute
     }
 
     /**
-     * @param int $m_rows
+     * @param int|mixed $m_rows
      * @return TextAttribute
      */
-    public function setMRows(int $m_rows): self
+    public function setMRows(int $m_rows): TextAttribute
     {
         $this->m_rows = $m_rows;
         return $this;
     }
 
     /**
-     * @return int|null
+     * @return mixed
      */
-    public function getMCols(): ?int
+    public function getMCols()
     {
         return $this->m_cols;
     }
 
     /**
-     * @param int $m_cols
+     * @param mixed $m_cols
      * @return TextAttribute
      */
-    public function setMCols(int $m_cols): self
+    public function setMCols($m_cols)
     {
         $this->m_cols = $m_cols;
         return $this;
@@ -310,9 +373,87 @@ class TextAttribute extends Attribute
      * @param mixed $m_autoadjust
      * @return TextAttribute
      */
-    public function setMAutoadjust($m_autoadjust): self
+    public function setMAutoadjust($m_autoadjust)
     {
         $this->m_autoadjust = $m_autoadjust;
         return $this;
     }
+
+    /**
+     * @return mixed|string
+     */
+    public function getDisplayMode(): string
+    {
+        return $this->displayMode;
+    }
+
+    /**
+     * @param mixed|string $displayMode
+     * @return TextAttribute
+     */
+    public function setDisplayMode(string $displayMode): self
+    {
+
+        if (in_array($displayMode, self::MODES_ALLOWED)) {
+            $this->displayMode = $displayMode;
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return mixed|string
+     */
+    public function getMinWidth(): string
+    {
+        return $this->minWidth;
+    }
+
+    /**
+     * @param mixed|string $minWidth
+     * @return TextAttribute
+     */
+    public function setMinWidth(string $minWidth): self
+    {
+        $this->minWidth = $minWidth;
+        return $this;
+    }
+
+    /**
+     * @return mixed|string
+     */
+    public function getMaxHeight(): string
+    {
+        return $this->maxHeight;
+    }
+
+    /**
+     * @param mixed|string $maxHeight
+     * @return TextAttribute
+     */
+    public function setMaxHeight(string $maxHeight): self
+    {
+        $this->maxHeight = $maxHeight;
+        return $this;
+    }
+
+    /**
+     * @return int|mixed
+     */
+    public function getMaxChars(): ?int
+    {
+        return $this->maxChars;
+    }
+
+    /**
+     * @param int|mixed $maxChars
+     * @return TextAttribute
+     */
+    public function setMaxChars(int $maxChars): self
+    {
+        $this->maxChars = $maxChars;
+        return $this;
+    }
+
+
 }

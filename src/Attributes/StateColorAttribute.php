@@ -6,8 +6,6 @@ use Sintattica\Atk\AdminLte\UIStateColors;
 use Sintattica\Atk\Core\Tools;
 
 /**
- * TODO: rename in UIStateColor?
- *
  * Class StateColorAttribute
  * @package Sintattica\Atk\Attributes
  *
@@ -24,11 +22,11 @@ class StateColorAttribute extends DummyAttribute
     public const SIZE_LG = 'lg';
 
     /**
-     * State from UIStateColors
+     * Colors from UIStateColors
      *
      * @var UIStateColors $color
      */
-    protected $color = UIStateColors::STATE_WHITE;
+    protected $color = UIStateColors::COLOR_WHITE;
 
     /**
      * @var callable Base function to conditionally retrieve the color
@@ -36,18 +34,11 @@ class StateColorAttribute extends DummyAttribute
     protected $colorCondition;
 
     /**
-     * Text content (shown on the right side of the color)
+     * Text content (shown in the right side of the color)
      *
      * @var string $content
      */
     protected $textContent;
-
-    /**
-     * List of css classes of text content
-     *
-     * @var array $textCssClasses
-     */
-    private $textCssClasses = [];
 
     private $shape = self::SHAPE_ROUND;
     private $bordered = false;
@@ -59,8 +50,9 @@ class StateColorAttribute extends DummyAttribute
         parent::__construct($name, $flags | self::AF_READONLY | self::AF_DUMMY_SHOW_LABEL);
     }
 
-    public function display(array $record, string $mode): string
+    public function display($record, $mode)
     {
+
         $shapeClasses = [];
 
         if ($this->colorCondition) {
@@ -74,13 +66,13 @@ class StateColorAttribute extends DummyAttribute
         $borderStyle = '';
         if ($this->bordered) {
             $shapeClasses[] = 'bordered';
-            $borderStyle = 'style="border-color:' . UIStateColors::getBorderColor($this->color) . ';"';
+            $borderStyle = 'style="border-color:' . Tools::dimColorBy(UIStateColors::getHex($this->color), 15) . ';"';
         }
 
         $display = '<span class="' . implode(' ', $shapeClasses) . ' d-inline-block state-color-attribute"' . $borderStyle . '></span>';
 
         if ($this->textContent) {
-            $textClasses = $this->textCssClasses;
+            $textClasses = [];
             if ($this->coloredText) {
                 $textClasses[] = UIStateColors::getTextClassFromState($this->color);
             }
@@ -91,97 +83,133 @@ class StateColorAttribute extends DummyAttribute
         return $display;
     }
 
+    /**
+     * @return string
+     */
     public function getColor(): string
     {
         return $this->color;
     }
 
+    /**
+     * @param string $color
+     * @return StateColorAttribute
+     */
     public function setColor(string $color): self
     {
         $this->color = $color;
         return $this;
     }
 
+    /**
+     * @return string
+     */
     public function getTextContent(): string
     {
         return $this->textContent;
     }
 
+    /**
+     * @param string $content
+     * @return StateColorAttribute
+     */
     public function setTextContent(string $content): self
     {
         $this->textContent = $content;
         return $this;
     }
 
+    /**
+     * @return callable
+     */
     public function getColorCondition(): callable
     {
         return $this->colorCondition;
     }
 
+    /**
+     * @param callable $colorCondition
+     * @return StateColorAttribute
+     */
     public function setColorCondition(callable $colorCondition): self
     {
         $this->colorCondition = $colorCondition;
         return $this;
     }
 
+    /**
+     * @return string
+     */
     public function getShape(): string
     {
         return $this->shape;
     }
 
+    /**
+     * @param string $shape
+     * @return StateColorAttribute
+     */
     public function setShape(string $shape): self
     {
         $this->shape = $shape;
         return $this;
     }
 
+    /**
+     * @return bool
+     */
     public function getBordered(): bool
     {
         return $this->bordered;
     }
 
+    /**
+     * @param bool $bordered
+     * @return StateColorAttribute
+     */
     public function setBordered(bool $bordered): self
     {
         $this->bordered = $bordered;
         return $this;
     }
 
+    /**
+     * @return bool
+     */
     public function getColoredText(): bool
     {
         return $this->coloredText;
     }
 
+    /**
+     * @param null $coloredText
+     * @return StateColorAttribute
+     */
     public function setColoredText($coloredText): self
     {
         $this->coloredText = $coloredText;
         return $this;
     }
 
+    /**
+     * @return string
+     */
     public function getSize(): string
     {
         return $this->size;
     }
 
+    /**
+     * @param string $size
+     * @return StateColorAttribute
+     */
     public function setSize(string $size): self
     {
         $this->size = $size;
         return $this;
     }
 
-    public function getTextCssClasses(): array
-    {
-        return $this->textCssClasses;
-    }
 
-    public function setTextCssClasses(array $textCssClasses): self
-    {
-        $this->textCssClasses = $textCssClasses;
-        return $this;
-    }
 
-    public function addTextCssClass(string $textCssClass): self
-    {
-        $this->textCssClasses[] = $textCssClass;
-        return $this;
-    }
+
 }

@@ -3,23 +3,23 @@ if (!ATK) {
 }
 
 ATK.TabbedPane = {
-    showTab: function (paneAttrName, selectedPaneTabName) {
-        let paneAttr = jQuery('#' + paneAttrName);
-        let attrs = paneAttr.find('.tabbedPaneAttr');
-        let paneTabs = paneAttr.find('.tabbedPaneTab');
+    showTab: function (paneName, tabName) {
+        var pane = jQuery('#' + paneName);
+        var attrs = pane.find('.tabbedPaneAttr');
+        var tabs = pane.find('.tabbedPaneTab');
 
-        let input = jQuery('input[name="' + paneAttrName.substring(10) + '"]');
-        input.val(selectedPaneTabName.substring(13));
+        var input = jQuery('input[name="'+paneName.substring(10)+'"]');
+        input.val(tabName.substring(13));
 
-        // show attributes of the selected pane tab
+        // show attribute of the current tab
         attrs.each(function (index, attr) {
-            let $attr = jQuery(attr);
-            let id = $attr.attr('id');
+            var $attr = jQuery(attr);
+            var id = $attr.attr('id');
             if (id !== null && id.substring(0, 3) === 'ar_') {
                 return;
             }
 
-            if ($attr.hasClass(selectedPaneTabName)) {
+            if ($attr.hasClass(tabName)) {
                 $attr.show();
                 ATK.Tools.enableSelect2($attr);
             } else {
@@ -27,14 +27,17 @@ ATK.TabbedPane = {
             }
         });
 
-        // make paneTabs active or passive
-        paneTabs.each(function (index, paneTab) {
-            let $paneTab = jQuery(paneTab);
-            let navLink = $paneTab.children('.nav-link');
-            if ($paneTab.hasClass(selectedPaneTabName)) {
-                navLink.addClass('active activetab').removeClass('passivetab');
+        // make tabs active or passive
+        tabs.each(function (index, tab) {
+            var $tab = jQuery(tab);
+            if ($tab.hasClass(tabName)) {
+                $tab.addClass('activetab');
+                $tab.addClass('active');
+                $tab.removeClass('passivetab');
             } else {
-                navLink.addClass('passivetab').removeClass('active activetab');
+                $tab.addClass('passivetab');
+                $tab.removeClass('activetab');
+                $tab.removeClass('active');
             }
         });
     }

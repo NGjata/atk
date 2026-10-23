@@ -374,7 +374,7 @@ class SecurityManager
                 return $this->m_user;
 
             }elseif ($this->auth_response === self::AUTH_ERROR) {
-                $this->m_fatalError = $obj->m_fatalError ?? 'Login error';
+                $this->m_fatalError = isset($obj->m_fatalError) ? $obj->m_fatalError : 'Login error';
             }
         }
 
@@ -586,38 +586,28 @@ class SecurityManager
     /**
      * Retrieve all known information about the currently logged-in user.
      *
-     * @return array|null User info or null if no user is logged in.
+     * @param $key string
+     *
+     * @return array Array with userinfo, or null if no user is logged in.
      */
-    public static function atkGetUser(): ?array
+    public static function atkGetUser($key = '')
     {
-        if (!Config::getGlobal('authentication_session')) {
-            return null;
-        }
-
         $user = null;
         $sm = SessionManager::getInstance();
-        if (is_object($sm)) {
-            $sessionAuth = $sm->getValue('authentication', 'globals');
-        }
-        if (!isset($sessionAuth)) {
-            $sessionAuth = [];
-        }
-        if (!empty($sessionAuth) && $sessionAuth['authenticated'] == 1 && !empty($sessionAuth['user'])) {
-            $user = $sessionAuth['user'];
-            if (empty($user['access_level'])) {
+        $session_auth = is_object($sm) ? $sm->getValue('authentication', 'globals') : [];
+        if (Config::getGlobal('authentication_session') && ($session_auth['authenticated'] ?? 0) == 1 && !empty($session_auth['user'])
+        ) {
+            $user = $session_auth['user'];
+            if (!isset($user['access_level']) || empty($user['access_level'])) {
                 $user['access_level'] = 0;
             }
         }
 
-        return $user;
-    }
-
-    public static function atkGetUserKey(string $key)
-    {
-        if ($user = self::atkGetUser()) {
-            return $user[$key] ?? null;
+        if ($key) {
+            return $user[$key];
         }
-        return null;
+
+        return $user;
     }
 
     /**

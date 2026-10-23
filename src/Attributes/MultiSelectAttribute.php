@@ -38,7 +38,7 @@ class MultiSelectAttribute extends ListAttribute
      * @param $valueArray $value Array with values. If you don't use this parameter,
      *                    values are assumed to be the same as the options.
      */
-    public function __construct($name, $flags, $optionArray, $valueArray = null)
+    public function __construct($name, $flags = 0, $optionArray, $valueArray = null)
     {
         parent::__construct($name, $flags, $optionArray, $valueArray);
 
@@ -80,29 +80,29 @@ class MultiSelectAttribute extends ListAttribute
     }
 
 
-    public function value2db(array $record)
+    public function value2db(array $rec)
     {
-        if (is_array($record[$this->fieldName()]) && Tools::count($record[$this->fieldName()]) >= 1) {
-            return $this->escapeSQL(implode($this->m_fieldSeparator, $record[$this->fieldName()]));
+        if (is_array($rec[$this->fieldName()]) && Tools::count($rec[$this->fieldName()]) >= 1) {
+            return $this->escapeSQL(implode($this->m_fieldSeparator, $rec[$this->fieldName()]));
+        } else {
+            return '';
         }
-
-        return '';
     }
 
     /**
      * Converts a database value to an internal value.
      *
-     * @param array $record The database record that holds this attribute's value
+     * @param array $rec The database record that holds this attribute's value
      *
      * @return mixed The internal value
      */
-    public function db2value($record)
+    public function db2value($rec)
     {
-        if (isset($record[$this->fieldName()]) && $record[$this->fieldName()] !== '') {
-            return explode($this->m_fieldSeparator, $record[$this->fieldName()]);
+        if (isset($rec[$this->fieldName()]) && $rec[$this->fieldName()] !== '') {
+            return explode($this->m_fieldSeparator, $rec[$this->fieldName()]);
+        } else {
+            return [];
         }
-
-        return [];
     }
 
     /**
@@ -121,7 +121,7 @@ class MultiSelectAttribute extends ListAttribute
     /**
      * Returns a displayable string for this value, to be used in HTML pages.
      *
-     * @param array<string, mixed> $record The record that holds the value for this attribute
+     * @param array $record The record that holds the value for this attribute
      * @param string $mode The display mode ("view" for viewpages, or "list"
      *                       for displaying in recordlists, "edit" for
      *                       displaying in editscreens, "add" for displaying in
@@ -130,12 +130,12 @@ class MultiSelectAttribute extends ListAttribute
      *
      * @return string HTML String
      */
-    public function display(array $record, string $mode): string
+    public function display($record, $mode)
     {
         $values = $record[$this->fieldName()];
         $res = [];
         for ($i = 0; $i < Tools::count($values); ++$i) {
-            $res[] = $this->translateValue($values[$i], $record);
+            $res[] = $this->_translateValue($values[$i], $record);
         }
 
         return implode(', ', $res);
@@ -187,7 +187,7 @@ class MultiSelectAttribute extends ListAttribute
 
             $result .= '<div>';
             $result .= '<input type="checkbox" id="'.$checkId.'" name="'.$checkName.'" value="'.$values[$i].'" '.$sel.'> ';
-            $result .= $this->translateValue($values[$i], $record);
+            $result .= $this->_translateValue($values[$i], $record);
             $result .= '</div>';
         }
         $result .= '</div>';

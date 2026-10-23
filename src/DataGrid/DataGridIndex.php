@@ -2,6 +2,8 @@
 
 namespace Sintattica\Atk\DataGrid;
 
+use SmartyException;
+
 /**
  * The data grid index. Can be used to render an alphanumeric index
  * for an ATK data grid.
@@ -57,6 +59,7 @@ class DataGridIndex extends DataGridComponent
      * Renders the index for the given data grid.
      *
      * @return string rendered HTML
+     * @throws SmartyException
      */
     public function render(): string
     {

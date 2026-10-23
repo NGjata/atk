@@ -2,9 +2,6 @@
 
 namespace Sintattica\Atk\Utils;
 
-use ArrayAccess;
-use Countable;
-use IteratorAggregate;
 use Sintattica\Atk\Attributes\Attribute;
 use Sintattica\Atk\Core\Config;
 use Sintattica\Atk\Core\Node;
@@ -19,7 +16,7 @@ use Exception;
  *
  * @author Peter C. Verhage <peter@achievo.org>
  */
-class Selector implements ArrayAccess, Countable, IteratorAggregate
+class Selector implements \ArrayAccess, \Countable, \IteratorAggregate
 {
     /**
      * This selector's node.
@@ -712,7 +709,7 @@ class Selector implements ArrayAccess, Countable, IteratorAggregate
             $stmt = $this->_getDb()->prepare($query->buildSelect());
             $stmt->execute($this->_getBindParameters());
             $rows = $stmt->getAllRows();
-            $stmt->reset();
+            $stmt->close();
             $this->m_rows = $this->_transformRows($rows, $query, $attrsByLoadType);
         }
 
@@ -739,7 +736,7 @@ class Selector implements ArrayAccess, Countable, IteratorAggregate
         $stmt = $this->_getDb()->prepare($query->buildSelect());
         $stmt->execute($this->_getBindParameters());
         $row = $stmt->getFirstRow();
-        $stmt->reset();
+        $stmt->close();
 
         $query->deAlias($row);
         $res = [];
@@ -753,8 +750,10 @@ class Selector implements ArrayAccess, Countable, IteratorAggregate
 
     /**
      * Return row count.
+     *
+     * @return int row count
      */
-    public function getRowCount(): int
+    public function getRowCount()
     {
         if ($this->m_rowCount === null) {
             $attrsByLoadType = $this->_getAttributesByLoadType();
@@ -762,7 +761,7 @@ class Selector implements ArrayAccess, Countable, IteratorAggregate
             $stmt = $this->_getDb()->prepare($query->buildCount());
             $stmt->execute($this->_getBindParameters());
             $rows = $stmt->getAllRows();
-            $stmt->reset();
+            $stmt->close();
             $this->m_rowCount = Tools::count($rows) == 1 ? $rows[0]['count'] : Tools::count($rows); // group by fix
         }
 
@@ -772,9 +771,9 @@ class Selector implements ArrayAccess, Countable, IteratorAggregate
     /**
      * Returns the available indices for the index field based on the criteria.
      *
-     * @return array|null available indices
+     * @return array available indices
      */
-    public function getIndices(): ?array
+    public function getIndices()
     {
         if ($this->_getNode()->m_index == null) {
             return [];
@@ -803,47 +802,63 @@ class Selector implements ArrayAccess, Countable, IteratorAggregate
         $stmt = $this->_getDb()->prepare($query->buildSelect());
         $stmt->execute($this->_getBindParameters());
         $this->m_indices = $stmt->getAllValues();
-        $stmt->reset();
+        $stmt->close();
 
         return $this->m_indices;
     }
 
     /**
      * Does the given offset exist?
+     *
+     * @param string|int $key key
+     *
+     * @return bool offset exists?
      */
-    public function offsetExists(mixed $offset): bool
+    public function offsetExists($key)
     {
         $this->getAllRows();
 
-        return isset($this->m_rows[$offset]);
+        return isset($this->m_rows[$key]);
     }
 
     /**
      * Returns the given offset.
+     *
+     * @param string|int $key key
+     *
+     * @return mixed
      */
-    public function offsetGet(mixed $offset): mixed
+    public function offsetGet($key)
     {
         $this->getAllRows();
 
-        return $this->m_rows[$offset];
+        return $this->m_rows[$key];
     }
 
     /**
      * Sets the value for the given offset.
+     *
+     * @param string|int $key
+     * @param mixed $value
+     *
+     * @return mixed
      */
-    public function offsetSet(mixed $offset, mixed $value): void
+    public function offsetSet($key, $value)
     {
         $this->getAllRows();
-        $this->m_rows[$offset] = $value;
+
+        return $this->m_rows[$key] = $value;
     }
 
     /**
      * Unset the given element.
+     *
+     * @param string|int $key
      */
-    public function offsetUnset(mixed $offset): void
+    public function offsetUnset($key)
     {
         $this->getAllRows();
-        unset($this->m_rows[$offset]);
+        unset($this->m_rows[$key]);
     }
 
     /**
@@ -852,7 +867,7 @@ class Selector implements ArrayAccess, Countable, IteratorAggregate
      * NOTE: if you call this method multiple times, the same iterator will
      *       be returned, unless you have closed the selector first
      */
-    public function getIterator(): SelectorIterator
+    public function getIterator()
     {
         if ($this->m_iterator == null) {
             $attrsByLoadType = $this->_getAttributesByLoadType();
@@ -874,7 +889,7 @@ class Selector implements ArrayAccess, Countable, IteratorAggregate
      * Closes the current statement used for this selector.
      * Also clears the row and row count cache.
      */
-    public function close(): void
+    public function close()
     {
         if ($this->m_iterator != null) {
             $this->m_iterator = null;
@@ -890,12 +905,13 @@ class Selector implements ArrayAccess, Countable, IteratorAggregate
     }
 
     /**
-     * Returns the row count.
-     * Used when calling count on a Selector object,
+     * Returns the row count (used when calling count on an Selector object,
      * don't use this if you want to efficiently retrieve the row count using
-     * a Tools::count() select statement, use getRowCount instead.
+     * a Tools::count() select statement, use getRowCount instead!
+     *
+     * @return int row count
      */
-    public function count(): int
+    public function count()
     {
         $this->getAllRows();
 
