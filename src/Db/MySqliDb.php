@@ -65,6 +65,11 @@ class MySqliDb extends Db
             if (empty($port)) {
                 $port = null;
             }
+            // Since PHP 8.1 mysqli throws exceptions by default. This driver
+            // (and the handlers built on it) rely on return values and error
+            // codes: reconnect on 2006, lock fallback on 1100, foreign key
+            // violations (1451) reported as user errors.
+            mysqli_report(MYSQLI_REPORT_OFF);
             $this->m_link_id = @mysqli_connect($host, $user, $password, $database, $port);
             if (!$this->m_link_id) {
                 $this->halt($this->getErrorMsg());
