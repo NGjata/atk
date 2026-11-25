@@ -330,10 +330,13 @@ class DataNode extends Node
             $attr = $this->getAttribute($column);
 
             if ($attr instanceof NumberAttribute) {
-                usort($data,
-                    create_function('$a, $b', 'return $a["'.$column.'"] == $b["'.$column.'"] ? 0 : ($a["'.$column.'"] < $b["'.$column.'"] ? -1 : 1);'));
+                usort($data, static function ($a, $b) use ($column) {
+                    return $a[$column] <=> $b[$column];
+                });
             } else {
-                usort($data, create_function('$a, $b', 'return strcasecmp($a["'.$column.'"], $b["'.$column.'"]);'));
+                usort($data, static function ($a, $b) use ($column) {
+                    return strcasecmp((string) $a[$column], (string) $b[$column]);
+                });
             }
 
             if (!$asc) {

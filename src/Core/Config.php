@@ -32,7 +32,7 @@ class Config
 
     public static function env($key, $default = false)
     {
-        $value = getenv($key);
+        $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
         if ($value === false && $default) {
             return $default;
         }

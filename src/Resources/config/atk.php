@@ -173,6 +173,30 @@ return [
     'restrictive' => true,
 
     /*
+     * The 'select' and 'multiselect' actions (the record picker used by
+     * relations) list the records of a node. By default they need no privilege,
+     * so every logged-in user can list every node this way.
+     *
+     * Set this to a privilege name (for example 'admin') to require that
+     * privilege on the node. Users who pick records through a relation then
+     * need that privilege on the destination node too.
+     */
+    'select_action_privilege' => '',
+
+    /*
+     * Validation of the SQL fragments ATK accepts from a request
+     * (atkselector, atkfilter, atkprimkey) against a strict grammar:
+     * column comparisons joined by AND/OR, no functions, sub-queries or comments.
+     *
+     * 'off'     - no validation
+     * 'log'     - rejected values are written to the PHP error log and still used
+     * 'enforce' - the request is halted
+     *
+     * Run with 'log' first, review the log, then switch to 'enforce'.
+     */
+    'where_clause_validation' => Config::env('WHERE_CLAUSE_VALIDATION', 'log'),
+
+    /*
      *
      * @var boolean
      */

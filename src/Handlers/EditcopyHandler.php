@@ -20,6 +20,13 @@ class EditcopyHandler extends ActionHandler
     {
         Tools::atkdebug('node::action_editcopy()');
 
+        // copying changes data: the request must carry the session's CSRF token
+        if (!$this->requestHasValidCSRFToken()) {
+            $this->renderAccessDeniedPage();
+
+            return;
+        }
+
         $record = $this->getCopyRecord();
         // allowed to editcopy record?
         if (!$this->allowed($record)) {

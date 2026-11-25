@@ -561,7 +561,7 @@ class DateTimeAttribute extends Attribute
                     $attr = $node->getAttribute($part);
 
                     // relation, prepare for next iteration
-                    if (is_a($attr, 'ManyToOneRelation')) {
+                    if (is_a($attr, \Sintattica\Atk\Relations\ManyToOneRelation::class)) {
                         if (Tools::count($parts) > 0 && !isset($record[$part][$parts[0]])) {
                             /** @var ManyToOneRelation $attr */
                             $attr->populate($record, array($parts[0]));
@@ -571,7 +571,7 @@ class DateTimeAttribute extends Attribute
                         $node = $attr->m_destInstance;
                     } // timezone attribute, calculate and return offset
                     else {
-                        if (is_a($attr, 'TimezoneAttribute')) {
+                        if (is_a($attr, \Sintattica\Atk\Attributes\TimeZoneAttribute::class)) {
                             /** @var TimezoneAttribute $attr */
                             return $attr->getUTCOffset($record[$attr->fieldName()], $stamp);
                         } // assume the attribute in question already has the offset saved in seconds

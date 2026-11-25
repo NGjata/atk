@@ -357,6 +357,7 @@ class SecurityManager
             if ($match) {
                 $this->auth_response = self::AUTH_SUCCESS;
                 $this->m_user = $system_user;
+                $this->regenerateSessionId();
                 return $this->m_user;
             }
 
@@ -371,6 +372,7 @@ class SecurityManager
             if ($this->auth_response === self::AUTH_SUCCESS) {
                 $this->m_fatalError = null;
                 $this->storeAuth($auth_user, $class);
+                $this->regenerateSessionId();
                 return $this->m_user;
 
             }elseif ($this->auth_response === self::AUTH_ERROR) {
@@ -387,6 +389,17 @@ class SecurityManager
     }
 
     /**
+     * Give the session a new id after a successful login, so that an id
+     * known before the login (session fixation) is of no use afterwards.
+     */
+    protected function regenerateSessionId()
+    {
+        if (php_sapi_name() !== 'cli' && session_status() === PHP_SESSION_ACTIVE && !headers_sent()) {
+            session_regenerate_id(true);
+        }
+    }
+
+    /**
      * @param array $user
      */
     public function postLogin(&$user) {
@@ -395,7 +408,13 @@ class SecurityManager
         $this->m_user = $user;
         $GLOBALS['g_user'] = &$user;
         $sm = SessionManager::getInstance();
-        $sm->globalVar('authentication', ['authenticated' => 1, 'user' => $user], true);
+        // do not keep the password hash in the session
+        $sessionUser = $user;
+        $passwordField = Config::getGlobal('auth_passwordfield');
+        if ($passwordField && is_array($sessionUser)) {
+            unset($sessionUser[$passwordField]);
+        }
+        $sm->globalVar('authentication', ['authenticated' => 1, 'user' => $sessionUser], true);
         if (!$isCli) {
             header('user: '.$user['name']);
         }

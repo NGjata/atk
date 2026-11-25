@@ -558,6 +558,10 @@ class ExportHandler extends ActionHandler
         $sessionData = &SessionManager::getSession();
         $session_back = $sessionData['default']['stack'][$sm->atkStackID()][$sm->atkLevel() - 1];
         $atkorderby = isset($session_back['atkorderby']) ? $session_back['atkorderby'] : null;
+        // the order by originates from the request: only accept a plain list of columns
+        if (!is_string($atkorderby) || !preg_match('/^\s*[A-Za-z0-9_.`\[\]]+(\s+(asc|desc))?(\s*,\s*[A-Za-z0-9_.`\[\]]+(\s+(asc|desc))?)*\s*$/i', $atkorderby)) {
+            $atkorderby = null;
+        }
 
         $node = $this->m_node;
         $node_bk = $node;

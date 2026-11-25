@@ -292,7 +292,7 @@ class DataGridList extends DataGridComponent
                     $record['cols'][] = array(
                         'content' => $inputHTML . '
               <script language="javascript"  type="text/javascript">' . $listName . '["' . htmlentities($list['rows'][$i]['selector']) . '"] =
-                  new Array("' . implode($list['rows'][$i]['mra'], '","') . '");
+                  new Array("' . implode('","', $list['rows'][$i]['mra']) . '");
               </script>',
                         'type' => 'mra',
                     );

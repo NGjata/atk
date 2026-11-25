@@ -182,7 +182,7 @@ class DbAuth extends AuthInterface
         if ($usertable == $leveltable || $leveltable == '') {
             // Level and userid are stored in the same table.
             // This means one user can only have one level.
-            $query = "SELECT * FROM $usertable WHERE $userfield ='$user'";
+            $query = "SELECT * FROM $usertable WHERE $userfield ='".$db->escapeSQL($user)."'";
         } else {
             // Level and userid are stored in two separate tables. This could
             // mean (but doesn't have to) that a user can have more than one
@@ -192,7 +192,7 @@ class DbAuth extends AuthInterface
             $qryobj->addField("$usertable.*");
             $qryobj->addField("usergroup.$levelfield");
             $qryobj->addJoin($leveltable, 'usergroup', "$usertable.$userpk = usergroup.$userfk", true);
-            $qryobj->addCondition("$usertable.$userfield = '$user'");
+            $qryobj->addCondition("$usertable.$userfield = '".$db->escapeSQL($user)."'");
 
             if (!empty($groupparentfield)) {
                 $qryobj->addField("grp.$groupparentfield");

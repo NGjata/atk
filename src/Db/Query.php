@@ -589,7 +589,7 @@ class Query
     {
         if (($distinct || $this->m_distinct) && Tools::count($this->m_fields) > 0) {
             $result = 'SELECT COUNT(DISTINCT ';
-            $result .= implode($this->quoteFields($this->m_fields), ', ');
+            $result .= implode(', ', $this->quoteFields($this->m_fields));
             $result .= ') as count FROM ';
         } else {
             $result = 'SELECT COUNT(*) AS count FROM ';
@@ -744,6 +744,32 @@ class Query
                 unset($record[strtolower($name)]);
             }
         }
+    }
+
+    /**
+     * Search modes that may be turned into a "<mode>Condition" method call.
+     *
+     * The search mode comes from the request, so it must never be used to
+     * pick an arbitrary method of this class.
+     *
+     * @param mixed $searchmode
+     *
+     * @return bool
+     */
+    public static function isSearchMode($searchmode)
+    {
+        return is_string($searchmode) && in_array($searchmode, [
+            'exact',
+            'substring',
+            'wildcard',
+            'regexp',
+            'soundex',
+            'greaterthan',
+            'greaterthanequal',
+            'lessthan',
+            'lessthanequal',
+            'between',
+        ], true);
     }
 
     /**

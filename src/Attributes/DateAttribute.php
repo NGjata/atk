@@ -1151,7 +1151,8 @@ class DateAttribute extends Attribute
             return null;
         } //one of the fields is left empty
 
-        return $year.'-'.sprintf('%02d', $month).'-'.sprintf('%02d', $day);
+        // the parts come from the request and end up in a quoted SQL literal
+        return (int) $year.'-'.sprintf('%02d', (int) $month).'-'.sprintf('%02d', (int) $day);
     }
 
     /**

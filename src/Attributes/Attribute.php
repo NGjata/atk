@@ -1772,7 +1772,7 @@ class Attribute
             $searchmode = 'wildcard';
         }
 
-        $func = $searchmode . 'Condition';
+        $func = Query::isSearchMode($searchmode) ? $searchmode.'Condition' : '';
         if (method_exists($query, $func) && ($value || ($value == 0))) {
             return $query->$func($table . '.' . $this->fieldName(), $this->escapeSQL($value), $this->dbFieldType());
         } elseif (!method_exists($query, $func)) {

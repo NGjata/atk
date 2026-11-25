@@ -352,7 +352,8 @@ class ColumnConfig
                         $this->setSortDirection($param, 'desc');
                         break;
                     case 'setorder':
-                        list($attrib, $value) = each($param);
+                        $attrib = key($param);
+                        $value = current($param);
                         $this->setSortOrder($attrib, $value);
                         break;
                     case 'subtotal':

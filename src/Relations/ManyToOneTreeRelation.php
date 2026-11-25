@@ -117,7 +117,7 @@ class ManyToOneTreeRelation extends ManyToOneRelation
     {
         $res = '';
         $i = 0;
-        while (list(, $objarr) = each($tree)) {
+        foreach ($tree as $objarr) {
             ++$i;
             if ($this->m_current != $this->m_destInstance->m_table.'.'.$this->m_destInstance->m_primaryKey[0]."='".$objarr->m_id."'") {
                 $this->m_level = $level;

@@ -132,8 +132,8 @@ class FileEditor extends Node
         }
 
         // list only regular files or directories
-        if (is_file($this->m_dir.$entry) && ($this->m_filefilter == '' || ereg($this->m_filefilter, $entry))) {
-            if ($searching === true && (ereg($searchArray['filename'], $entry))) {
+        if (is_file($this->m_dir.$entry) && ($this->m_filefilter == '' || $this->ereg($this->m_filefilter, $entry))) {
+            if ($searching === true && ($this->ereg($searchArray['filename'], $entry))) {
                 $arr[] = $entry;
             } elseif ($searching == false) {
                 $arr[] = $entry;
@@ -255,7 +255,7 @@ class FileEditor extends Node
      */
     public function validate(&$rec, $mode, $ignoreList = [])
     {
-        if (!ereg($this->m_filefilter, $rec['filename'])) {
+        if (!$this->ereg($this->m_filefilter, $rec['filename'])) {
             Tools::triggerError($rec, 'filename', 'filename_invalid');
         } else {
             if ($mode == 'add' && file_exists($this->m_dir.$rec['filename'])) {
@@ -439,5 +439,25 @@ class FileEditor extends Node
     public function showDirs($bool)
     {
         $this->m_showdirs = (bool)$bool;
+    }
+
+    /**
+     * Replacement for the POSIX ereg() function removed in PHP 7.
+     *
+     * @param string $pattern POSIX extended regular expression
+     * @param string $string
+     * @param array|null $regs receives the matches
+     *
+     * @return int|false length of the match (at least 1) or false
+     */
+    private function ereg($pattern, $string, &$regs = null, $caseInsensitive = false)
+    {
+        $regex = '~'.str_replace('~', '\\~', (string) $pattern).'~'.($caseInsensitive ? 'i' : '');
+        if (@preg_match($regex, (string) $string, $matches) !== 1) {
+            return false;
+        }
+        $regs = $matches;
+
+        return max(1, strlen($matches[0]));
     }
 }

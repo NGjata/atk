@@ -2674,10 +2674,10 @@ class Node
                 $actions['delete'] = Tools::dispatch_url($this->atkNodeUri(), 'delete', array_merge($params, ['atkaction' => 'delete']));
             }
             if ($this->hasFlag(self::NF_COPY) && $this->allowed('copy')) {
-                $actions['copy'] = Tools::dispatch_url($this->atkNodeUri(), 'copy', array_merge($params, ['atkaction' => 'copy']));
+                $actions['copy'] = Tools::dispatch_url($this->atkNodeUri(), 'copy', array_merge($params, ['atkaction' => 'copy', 'atkcsrftoken' => ActionHandler::csrfToken()]));
             }
             if ($this->hasFlag(self::NF_EDITAFTERCOPY) && $this->allowed('editcopy')) {
-                $actions['editcopy'] = Tools::dispatch_url($this->atkNodeUri(), 'editcopy', array_merge($params, ['atkaction' => 'editcopy']));
+                $actions['editcopy'] = Tools::dispatch_url($this->atkNodeUri(), 'editcopy', array_merge($params, ['atkaction' => 'editcopy', 'atkcsrftoken' => ActionHandler::csrfToken()]));
             }
         }
 
@@ -2777,7 +2777,7 @@ class Node
         $ui = $this->getUi();
 
         if (is_array($atkselector)) {
-            $atkselector_str = '((' . implode($atkselector, ') OR (') . '))';
+            $atkselector_str = '((' . implode(') OR (', $atkselector) . '))';
         } else {
             $atkselector_str = $atkselector;
         }
@@ -4375,6 +4375,14 @@ class Node
         $alias = $this->atkNodeUri();
         $this->resolveNodeTypeAndAction($alias, $action);
 
+        // The record picker actions list a node's records without any privilege
+        // by default. When 'select_action_privilege' is set (e.g. to 'admin'),
+        // they require that privilege on the node instead.
+        $selectPrivilege = Config::getGlobal('select_action_privilege', '');
+        if ($selectPrivilege && in_array($action, ['select', 'multiselect'], true) && !$this->hasFlag(self::NF_NO_SECURITY)) {
+            return $secMgr->allowed($alias, $selectPrivilege);
+        }
+
         return $this->hasFlag(self::NF_NO_SECURITY) || in_array($action, $this->m_unsecuredActions) || $secMgr->allowed($alias,
                 $action) || (isset($this->m_securityImplied[$action]) && $secMgr->allowed($alias, $this->m_securityImplied[$action]));
     }
@@ -4517,9 +4525,10 @@ class Node
         //       this would probably only work fine when using PHP5, but's better then nothing?
         //       or why support functions at all?!
         // handler object
-        if ($handler != null && is_subclass_of($handler, 'ActionHandler')) {
+        if ($handler != null && is_subclass_of($handler, \Sintattica\Atk\Handlers\ActionHandler::class)) {
             Tools::atkdebug('self::getHandler: Using existing ActionHandler ' . get_class($handler) . " class for '" . $action . "'");
             $handler->setNode($this);
+            $handler->setPostvars($this->m_postvars);
             $handler->setAction($action);
         } else {
             $handler = ActionHandler::getDefaultHandler($action);
@@ -4754,10 +4763,10 @@ class Node
     {
         $listener->setNode($this);
 
-        if (is_a($listener, 'ActionListener')) {
+        if (is_a($listener, \Sintattica\Atk\Utils\ActionListener::class)) {
             $this->m_actionListeners[] = $listener;
         } else {
-            if (is_a($listener, 'TriggerListener')) {
+            if (is_a($listener, \Sintattica\Atk\Utils\TriggerListener::class)) {
                 $this->m_triggerListeners[] = $listener;
             } else {
                 Tools::atkdebug('self::addListener: Unknown listener base class ' . get_class($listener));

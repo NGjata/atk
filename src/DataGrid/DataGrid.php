@@ -5,6 +5,7 @@ namespace Sintattica\Atk\DataGrid;
 use Sintattica\Atk\Core\Config;
 use Sintattica\Atk\Core\Node;
 use Sintattica\Atk\Core\Tools;
+use Sintattica\Atk\Handlers\ActionHandler;
 use Sintattica\Atk\Session\SessionManager;
 use Sintattica\Atk\Utils\Json;
 use Sintattica\Atk\Utils\StringParser;
@@ -1678,7 +1679,7 @@ class DataGrid
     public function getSaveCall()
     {
         $sm = SessionManager::getInstance();
-        $url = $sm->sessionUrl(Tools::dispatch_url($this->getNode()->atkNodeUri(), 'multiupdate', array('output' => 'json')), SessionManager::SESSION_PARTIAL);
+        $url = $sm->sessionUrl(Tools::dispatch_url($this->getNode()->atkNodeUri(), 'multiupdate', array('output' => 'json', 'atkcsrftoken' => ActionHandler::csrfToken())), SessionManager::SESSION_PARTIAL);
 
         return 'ATK.DataGrid.save('.Json::encode($this->getName()).', '.Json::encode($url).');';
     }

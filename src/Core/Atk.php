@@ -54,7 +54,9 @@ class Atk
         //If a loader has been provided
         if ($loader) {
             //load .env variables
-            $dotEnv = Dotenv::createImmutable($loader);
+            // "Unsafe" also calls putenv(), so that getenv() - used by Config::env()
+            // and by application config files - sees the values from .env.
+            $dotEnv = Dotenv::createUnsafeImmutable($loader);
             $dotEnv->load();
         }
 

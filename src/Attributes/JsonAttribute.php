@@ -94,7 +94,9 @@ class JsonAttribute extends TextAttribute
             $record[$this->fieldName()] = json_encode($record[$this->fieldName()]);
         }
 
-        return $record[$this->fieldName()] ? Json::compact($record[$this->fieldName()]) : JSON::EMPTY_STRING;
+        $json = $record[$this->fieldName()] ? Json::compact($record[$this->fieldName()]) : JSON::EMPTY_STRING;
+
+        return $this->escapeSQL($json);
     }
 
     /**

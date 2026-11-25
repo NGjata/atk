@@ -3,6 +3,7 @@
 namespace Sintattica\Atk\Handlers;
 
 use Sintattica\Atk\Core\Tools;
+use Sintattica\Atk\Session\SessionManager;
 
 /**
  * Handler for the 'tcopy' action of a node. It copies the selected
@@ -17,6 +18,13 @@ class CopyHandler extends ActionHandler
      */
     public function action_copy()
     {
+        // copying changes data: the request must carry the session's CSRF token
+        if (!$this->requestHasValidCSRFToken()) {
+            $this->renderAccessDeniedPage();
+
+            return;
+        }
+
         $this->invoke('nodeCopy');
     }
 
@@ -48,6 +56,17 @@ class CopyHandler extends ActionHandler
                 $this->clearCache();
             }
         }
+
+        // Without a previous level on the session stack, going "back" leads to
+        // this same action again: the record was copied once more on every
+        // redirect until the browser gave up. Go to the list instead.
+        $sm = SessionManager::getInstance();
+        if ($sm->atkLevel() < 1) {
+            $this->m_node->redirect($sm->sessionUrl(Tools::dispatch_url($this->m_node->atkNodeUri(), 'admin'), SessionManager::SESSION_NEW));
+
+            return;
+        }
+
         $this->m_node->redirect();
     }
 }

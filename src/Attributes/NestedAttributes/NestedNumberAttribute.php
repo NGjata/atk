@@ -59,7 +59,7 @@ class NestedNumberAttribute extends NumberAttribute
 
         $fields_sql = self::buildJSONExtractValue($this, $table);
 
-        $func = $searchmode . 'Condition';
+        $func = Query::isSearchMode($searchmode) ? $searchmode.'Condition' : '';
         if (method_exists($query, $func) && ($value || ($value == 0))) {
             return $query->$func($fields_sql, $this->escapeSQL($value), $this->dbFieldType());
         } elseif (!method_exists($query, $func)) {
