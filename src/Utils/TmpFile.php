@@ -113,7 +113,7 @@ class TmpFile
             if (function_exists('file_get_contents')) {
                 return file_get_contents($this->getPath());
             } else {
-                return implode(null, $this->read());
+                return implode('', $this->read());
             }
         }
 

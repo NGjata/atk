@@ -235,6 +235,9 @@ class SessionManager
         }
 
         if ($rejected && $mode === WhereClauseValidator::MODE_ENFORCE) {
+            if (!headers_sent()) {
+                http_response_code(400);
+            }
             Tools::atkhalt('Invalid '.$rejected[0][0].' in request', 'critical');
         }
     }

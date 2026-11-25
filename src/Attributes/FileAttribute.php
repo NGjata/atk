@@ -2,7 +2,6 @@
 
 namespace Sintattica\Atk\Attributes;
 
-use SimpleXMLElement;
 use Sintattica\Atk\Core\Config;
 use Sintattica\Atk\Core\Tools;
 use Sintattica\Atk\Utils\StringParser;
@@ -230,16 +229,16 @@ class FileAttribute extends Attribute
                 $result = $this->display($record, $mode);
             }
 
-            if (isset($record[$this->fieldName()]['filename'])) {
-                $fileLink = new SimpleXMLElement($result);
-
+            // display() only returns a link when the file exists on disk; parsing
+            // its output as XML failed for missing files and for names containing '&'
+            if (isset($record[$this->fieldName()]['filename']) && preg_match('/<a\b[^>]*\bhref="([^"]*)"/', (string) $result, $fileLink)) {
                 $result = '<div class="existing-file input-group">
                     <div class="input-group-prepend">
                       <span class="input-group-text"><i class="fas fa-file"></i></span>
                     </div>
-                    <input type="text" class="form-control form-control-sm" disabled value="' . $record[$this->fieldName()]['filename'] . '" />
+                    <input type="text" class="form-control form-control-sm" disabled value="' . htmlspecialchars((string) $record[$this->fieldName()]['filename']) . '" />
                     <div class="input-group-append">
-                     <a href="' . $fileLink['href'] . '" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-arrow-alt-circle-down"></i></a>
+                     <a href="' . $fileLink[1] . '" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-arrow-alt-circle-down"></i></a>
                     </div>
                   </div>';
 

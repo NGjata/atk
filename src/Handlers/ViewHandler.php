@@ -267,7 +267,7 @@ class ViewHandler extends ViewEditBase
         } else {
             if (Tools::count(array_unique($tabTpl)) > 1) {
                 $tabForm = $this->_renderTabs($fields, $tabTpl);
-                $innerform = implode(null, $tabForm);
+                $innerform = implode('', $tabForm);
             } else {
                 $innerform = $ui->render($node->getTemplate('view', $record, $tab), array('fields' => $fields, 'attributes' => $attributes));
             }
