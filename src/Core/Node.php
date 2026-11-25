@@ -4525,9 +4525,10 @@ class Node
         //       this would probably only work fine when using PHP5, but's better then nothing?
         //       or why support functions at all?!
         // handler object
-        if ($handler != null && is_subclass_of($handler, 'ActionHandler')) {
+        if ($handler != null && is_subclass_of($handler, \Sintattica\Atk\Handlers\ActionHandler::class)) {
             Tools::atkdebug('self::getHandler: Using existing ActionHandler ' . get_class($handler) . " class for '" . $action . "'");
             $handler->setNode($this);
+            $handler->setPostvars($this->m_postvars);
             $handler->setAction($action);
         } else {
             $handler = ActionHandler::getDefaultHandler($action);
@@ -4762,10 +4763,10 @@ class Node
     {
         $listener->setNode($this);
 
-        if (is_a($listener, 'ActionListener')) {
+        if (is_a($listener, \Sintattica\Atk\Utils\ActionListener::class)) {
             $this->m_actionListeners[] = $listener;
         } else {
-            if (is_a($listener, 'TriggerListener')) {
+            if (is_a($listener, \Sintattica\Atk\Utils\TriggerListener::class)) {
                 $this->m_triggerListeners[] = $listener;
             } else {
                 Tools::atkdebug('self::addListener: Unknown listener base class ' . get_class($listener));

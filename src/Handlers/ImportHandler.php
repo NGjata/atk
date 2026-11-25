@@ -1243,7 +1243,7 @@ class ImportHandler extends ActionHandler
 
         if (method_exists($attr, 'createDestination') && $attr->createDestination() && !in_array($attributename, $allFields)) {
             $primaryKeyAttr = $attr->m_destInstance->getAttribute($attr->m_destInstance->primaryKeyField());
-            $isNumeric = $attr->hasFlag(Attribute::AF_AUTO_INCREMENT) || is_a($primaryKeyAttr, 'NumberAttribute');
+            $isNumeric = $attr->hasFlag(Attribute::AF_AUTO_INCREMENT) || is_a($primaryKeyAttr, \Sintattica\Atk\Attributes\NumberAttribute::class);
 
             $relationselect = [];
 
