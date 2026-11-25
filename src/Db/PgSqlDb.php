@@ -454,7 +454,7 @@ class PgSqlDb extends Db
     {
         /* limit? */
         if ($offset >= 0 && $limit >= 0) {
-            $query .= " LIMIT $limit OFFSET $offset";
+            $query .= ' LIMIT '.(int) $limit.' OFFSET '.(int) $offset;
         }
         Tools::atkdebug('atkpgsqldb.query(): '.$query);
 

@@ -747,6 +747,32 @@ class Query
     }
 
     /**
+     * Search modes that may be turned into a "<mode>Condition" method call.
+     *
+     * The search mode comes from the request, so it must never be used to
+     * pick an arbitrary method of this class.
+     *
+     * @param mixed $searchmode
+     *
+     * @return bool
+     */
+    public static function isSearchMode($searchmode)
+    {
+        return is_string($searchmode) && in_array($searchmode, [
+            'exact',
+            'substring',
+            'wildcard',
+            'regexp',
+            'soundex',
+            'greaterthan',
+            'greaterthanequal',
+            'lessthan',
+            'lessthanequal',
+            'between',
+        ], true);
+    }
+
+    /**
      * Generate a searchcondition that checks if the field is null.
      *
      * @param string $field

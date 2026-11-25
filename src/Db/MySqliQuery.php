@@ -185,7 +185,7 @@ class MySqliQuery extends Query
     public function _addLimiter(&$query)
     {
         if ($this->m_offset >= 0 && $this->m_limit > 0) {
-            $query .= ' LIMIT '.$this->m_offset.', '.$this->m_limit;
+            $query .= ' LIMIT '.(int) $this->m_offset.', '.(int) $this->m_limit;
         }
     }
 

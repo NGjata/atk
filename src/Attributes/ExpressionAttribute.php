@@ -194,7 +194,7 @@ class ExpressionAttribute extends Attribute
             }
         }
 
-        $func = $searchmode.'Condition';
+        $func = Query::isSearchMode($searchmode) ? $searchmode.'Condition' : '';
         if (method_exists($query, $func) && $value !== '' && $value !== null) {
             return $query->$func($expression, $this->escapeSQL($value));
         }

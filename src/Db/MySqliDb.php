@@ -194,7 +194,7 @@ class MySqliDb extends Db
     {
         /* limit? */
         if ($offset >= 0 && $limit > 0) {
-            $query .= " LIMIT $offset, $limit";
+            $query .= ' LIMIT '.(int) $offset.', '.(int) $limit;
         }
 
         /* connect to database */

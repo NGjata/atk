@@ -39,7 +39,7 @@ class PgSqlQuery extends Query
     public function _addLimiter(&$query)
     {
         if ($this->m_offset >= 0 && $this->m_limit > 0) {
-            $query .= ' LIMIT '.$this->m_limit.' OFFSET '.$this->m_offset;
+            $query .= ' LIMIT '.(int) $this->m_limit.' OFFSET '.(int) $this->m_offset;
         }
     }
 
