@@ -2,7 +2,7 @@
 
 namespace Sintattica\Atk\Core;
 
-use ReflectionException;
+use Sintattica\Atk\Core\Menu\Menu;
 use Sintattica\Atk\Core\Menu\MenuBase;
 
 /**
@@ -12,11 +12,13 @@ use Sintattica\Atk\Core\Menu\MenuBase;
  */
 abstract class Module
 {
-    public static string $module;
+    public static $module;
 
-    private Atk $atk;
+    /** @var Atk $atk */
+    private $atk;
 
-    private MenuBase $menu;
+    /** @var MenuBase $menu */
+    private $menu;
 
     public function __construct(Atk $atk, MenuBase $menu)
     {
@@ -41,20 +43,12 @@ abstract class Module
         //noop
     }
 
-    public function registerNode($nodeName, $nodeClass, $actions = null): void
+    public function registerNode($nodeName, $nodeClass, $actions = null)
     {
         $this->atk->registerNode(static::$module.'.'.$nodeName, $nodeClass, $actions);
     }
 
-    public function unregisterNode(string $nodeName): void
-    {
-        $this->atk->unregisterNode(static::$module.'.'.$nodeName);
-    }
-
-    /**
-     * @throws ReflectionException
-     */
-    public function addNodeToMenu($menuName, $nodeName, $action, $parent = 'main', $enable = null, $order = 0, $position = MenuBase::MENU_SIDEBAR): void
+    public function addNodeToMenu($menuName, $nodeName, $action, $parent = 'main', $enable = null, $order = 0, $position = Menu::MENU_SIDEBAR)
     {
         if ($enable === null) {
             $enable = [static::$module.'.'.$nodeName, $action];
@@ -62,10 +56,7 @@ abstract class Module
         $this->menu->addMenuItem($menuName, Tools::dispatch_url(static::$module.'.'.$nodeName, $action), $parent, $enable, $order, static::$module, '', $position);
     }
 
-    /**
-     * @throws ReflectionException
-     */
-    public function addMenuItem($name = '', $url = '', $parent = 'main', $enable = 1): void
+    public function addMenuItem($name = '', $url = '', $parent = 'main', $enable = 1)
     {
         $this->menu->addMenuItem($name, $url, $parent, $enable, 0, static::$module);
     }

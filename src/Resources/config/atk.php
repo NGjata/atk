@@ -1,8 +1,6 @@
 <?php
 
 use Sintattica\Atk\Core\Config;
-use Sintattica\Atk\Core\Menu\MenuBase;
-use Sintattica\Atk\Ui\Ui;
 
 $_configAppRoot = __DIR__ . '/../../../../../../';
 $_configTempDir = $_configAppRoot . 'var/atktmp/';
@@ -22,11 +20,17 @@ return [
     /********************* FILE LOCATIONS & PATHS ******************************/
 
     'configdirname' => $_configDirName,
+
     'application_dir' => $_configAppRoot,
+
     'application_config_dir' => $_configAppRoot . $_configDirName . '/',
+
     'application_config' => $_configAppRoot . $_configDirName . '/atk.php',
+
     'assets_url' => $_configAssetsUrl,
+
     'template_dir' => __DIR__ . '/../templates/',
+
     'public_dir' => $_public_dir,
 
     'version' => '',
@@ -36,12 +40,6 @@ return [
      */
     'default_upload_dir' => 'uploads',
     'default_upload_url' => 'uploads',
-
-    /**
-     * @see \Sintattica\Atk\Ui\Page::head()
-     */
-    'favicon_base_url' => '/',
-    'manifest_url' => '',
 
     /*
      * The location of a directory that is writable to ATK and that ATK can
@@ -57,7 +55,7 @@ return [
     'use_atkerrorhandler' => true,
 
     /*
-     * Cache table metadata and compiled meta node code.
+     * Cache table meta data and compiled meta node code.
      *
      * On development environments this option should be set to false, but
      * on production environments you should really enable it. If you enable
@@ -421,32 +419,6 @@ return [
      */
     'authentication_ldap_field' => '',
 
-    /***************** ACCESS LOGGER ****************************/
-
-    /*
-     * If enabled, logs user logins to the ATK application in the table specified by the auth_accesslog_table variable
-     */
-    'auth_accesslog_enabled' => false,
-
-    /*
-     * Name of the table used by the access logger. The table must have the following structure:
-     * id int NOT NULL PRIMARY KEY,
-     * timestamp datetime,
-     * app_name varchar(255),
-     * username varchar(255),
-     * ip_address varchar(255),
-     * event_type varchar(255),
-     * user_agent varchar(255),
-     * status varchar(255),
-     * details varchar(255)
-     */
-    'auth_accesslog_table' => 'auth_accesslog',
-
-    /**
-     * Application name, used to identify the application in the access log table
-     */
-    'app_name' => 'atk',
-
     /***************** DEBUGGING AND ERROR HANDLING ****************************/
 
     /*
@@ -483,7 +455,7 @@ return [
      * Output missing translation "errors".
      * @var String
      */
-    'debug_translations' => true,
+    'debug_translations' => false,
 
     /************************** INDEX *********************************/
 
@@ -513,10 +485,6 @@ return [
      */
     'menu_enable_user_link' => true,
 
-    'menu_default_item_position' => MenuBase::MENU_SIDEBAR,
-
-    'menu_hide_sidebar' => false,
-
     /************************************ LAYOUT ****************************** */
 
     /*
@@ -542,7 +510,7 @@ return [
      * The number of records per page options to display on drop down list
      * @var array
      */
-    'recordsperpage_options' => [10, 25, 50, 100, 200],
+    'recordsperpage_options' => [2, 10, 25, 50, 100],
 
     /*
      * Add a 'show all' option to the records per page selector.
@@ -605,10 +573,7 @@ return [
      */
     'mra_position' => 'bottom',
 
-    /*
-     * public path of custom css file
-     */
-    'style_url' => '',
+    'style_url' => $_configAssetsUrl . 'admin-lte/css/style.css',
 
     /*********************************** OUTPUT ********************************/
 
@@ -625,6 +590,7 @@ return [
     /********************************** LANGUAGE *******************************/
 
     /*
+     *
      * @var String
      */
     'language' => 'en',
@@ -632,13 +598,14 @@ return [
     'supported_languages' => ['en'],
 
     /*
+     *
      * @var String
      */
     'language_basedir' => 'languages/',
 
     /*
      * Use browser language to detect application language.
-     * By default false to remain backwards compatible.
+     * By default set to false to remain backwards compatible.
      *
      * @var boolean
      */
@@ -673,7 +640,7 @@ return [
 
     /*
      * The session name. If this configuration option is not set the
-     * identifier option is used instead.
+     * 'identifier option is used instead.
      *
      * @var string
      */
@@ -763,17 +730,6 @@ return [
      * @var boolean
      */
     'recordlist_javascript_delete' => false,
-
-    /*
-     * Options for recordActions visualization
-     */
-    'recordList_show_dropdown_labels' => true, //Show button names in the dropdown list
-    'recordList_dropdown_start_index' => 3, //Number of elements to show before putting the rest as a dropdown (if less than 1 no dropdown will be shown)
-
-    /*
-     * Position of the action form buttons (left, center, right)
-     */
-    'action_form_buttons_position' => Ui::ACTION_FORM_BUTTON_POSITION_RIGHT,
 
     /*
      * This should be turned on when an application makes use
@@ -871,15 +827,10 @@ return [
      */
     'onetomany_addlink_position' => 'top',
 
-    /**
-     * OneToMany position of label: false -> vertically centered (default), true -> top
-     */
-    'onetomany_label_position_top' => false,
-
     /*
      * Optionally set the export file parameters
      */
-    'export_delimiterexport_delimiter' => ',',
+    'export_delimiter' => ',',
     'export_enclosure' => '&quot;',
     'export_titlerow_checked' => true,
 
@@ -913,8 +864,6 @@ return [
      */
     'recordlist_top_scroller' => false,
 
-    'numberattribute_use_thousands_separator' => false,
-
     /*
      * logo
      */
@@ -926,31 +875,30 @@ return [
      */
     'recordlist_icons' => true,
 
-    'icon_add' => 'fa-solid fa-plus',
-    'icon_canceled' => 'fa-solid fa-xmark',
-    'icon_copy' => 'fa-regular fa-clone',
-    'icon_default' => 'fa-solid fa-file',
-    'icon_delete' => 'fa-solid fa-trash-can text-danger',
-    'icon_document' => 'fa-regular fa-file',
-    'icon_done' => 'fa-solid fa-check',
-    'icon_edit' => 'fa-solid fa-pencil',
-    'icon_editcopy' => 'fa-regular fa-clone',
-    'icon_email' => 'fa-regular fa-envelope',
-    'icon_e_mail' => 'fa-regular fa-envelope',
-    'icon_export' => 'fa-solid fa-file-export',
-    'icon_export_csv' => 'fa-solid fa-file-csv',
-    'icon_import' => 'fa-solid fa-file-import',
-    'icon_minussquare' => 'fa-regular fa-square-minus',
-    'icon_plussquare' => 'fa-regular fa-square-plus',
-    'icon_preview' => 'fa-regular fa-file',
-    'icon_print' => 'fa-solid fa-print',
-    'icon_select' => 'fa-regular fa-hand-pointer',
-    'icon_view' => 'fa-solid fa-magnifying-glass',
-    'icon_undo' => 'fa-solid fa-rotate-left',
-    'icon_redo' => 'fa-solid fa-rotate-right',
-    'icon_reply' => 'fa-solid fa-reply',
-    'icon_add_bookmark' => 'fa-regular fa-star',
-    'icon_delete_bookmark' => 'fa-solid fa-star',
+
+    'icon_add' => 'fas fa-plus',
+    'icon_canceled' => 'fas fa-times',
+    'icon_copy' => 'far fa-clone',
+    'icon_default' => 'fas fa-file',
+    'icon_delete' => 'fas fa-trash-alt text-danger',
+    'icon_document' => 'far fa-file',
+    'icon_done' => 'fas fa-check',
+    'icon_edit' => 'fas fa-pencil-alt',
+    'icon_editcopy' => 'far fa-clone',
+    'icon_email' => 'far fa-envelope',
+    'icon_e_mail' => 'far fa-envelope',
+    'icon_export' => 'fas fa-file-export',
+    'icon_export_csv' => 'fas fa-file-csv',
+    'icon_import' => 'fas fa-file-import',
+    'icon_minussquare' => 'far fa-minus-square',
+    'icon_plussquare' => 'far fa-plus-square',
+    'icon_preview' => 'far fa-file',
+    'icon_print' => 'fas fa-print',
+    'icon_select' => 'far fa-hand-pointer',
+    'icon_view' => 'fas fa-search',
+    'icon_undo' => 'fas fa-undo-alt',
+    'icon_redo' => 'fas fa-redo-alt',
+    'icon_reply' => 'fas fa-reply',
 
     /****************** CACHING ********************/
 
@@ -961,23 +909,5 @@ return [
 
 
     /******* Admin LTE 3 *********/
-    'enableDevModeNavbar' => true,
-
-    'expandSidebarOnHover' => true,
-    'indentSidebarChildren' => true,
-    'flatNavStyle' => false,
-    'compactSidebarStyle' => false,
-    'legacyNavStyle' => false,
-    'bodySmallText' => true,
-    'navSmallText' => false,
-    'sidebarSmallText' => false,
-    'collapsedSidebar' => false,
-    'footerSmallText' => false,
-    'brandSmallText' => false,
-    'sidebarElevation' => 2,
-    'holdTransition' => false,
-    'fixedNavHeader' => true,
-    'menuAccordion' => true,
-
-    'custom_font' => 'sans',
+    'enableDevModeNavbar' => true
 ];

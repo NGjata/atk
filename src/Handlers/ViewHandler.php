@@ -2,12 +2,11 @@
 
 namespace Sintattica\Atk\Handlers;
 
-use Exception;
-use Sintattica\Atk\Attributes\Attribute;
 use Sintattica\Atk\Core\Tools;
 use Sintattica\Atk\Core\Node;
 use Sintattica\Atk\Core\Config;
 use Sintattica\Atk\Session\SessionManager;
+use SmartyException;
 
 /**
  * Handler class for a readonly view action. Similar to the edit handler,
@@ -23,7 +22,6 @@ class ViewHandler extends ViewEditBase
      * The action handler method.
      *
      * @param bool $renderbox Render this action in a renderbox or just output the HTML
-     * @throws Exception
      */
     public function action_view($renderbox = true)
     {
@@ -43,7 +41,7 @@ class ViewHandler extends ViewEditBase
         }
 
         $page = $this->getPage();
-        $page->register_script(Config::getGlobal('assets_url') . 'javascript/formsubmit.js');
+        $page->register_script(Config::getGlobal('assets_url').'javascript/formsubmit.js');
         $this->notify('view', $record);
         $page->addContent($this->m_node->renderActionPage('admin', $this->invoke('viewPage', $record, $this->m_node, $renderbox)));
     }
@@ -53,10 +51,7 @@ class ViewHandler extends ViewEditBase
      */
     public function getRecordFromDb()
     {
-        return $this->m_node->select($this->m_postvars[Node::PARAM_ATKSELECTOR])
-            ->excludes($this->m_node->m_viewExcludes)
-            ->mode('view')
-            ->getFirstRow();
+        return $this->m_node->select($this->m_postvars['atkselector'])->excludes($this->m_node->m_viewExcludes)->mode('view')->getFirstRow();
     }
 
     /**
@@ -67,16 +62,16 @@ class ViewHandler extends ViewEditBase
     public function getFormStart($record = null)
     {
         $sm = SessionManager::getInstance();
-        $formstart = '<form id="entryform" name="entryform" action="' . Config::getGlobal('dispatcher') . '" method="get" onsubmit="return ATK.globalSubmit(this,false)">';
+        $formstart = '<form id="entryform" name="entryform" action="'.Config::getGlobal('dispatcher').'" method="get" onsubmit="return ATK.globalSubmit(this,false)">';
         $formstart .= $sm->formState(SessionManager::SESSION_NESTED);
-        $formstart .= '<input type="hidden" name="' . Node::PARAM_ATKSELECTOR . '" value="' . $this->getNode()->primaryKey($record) . '">';
+        $formstart .= '<input type="hidden" name="atkselector" value="'.$this->getNode()->primaryKey($record).'">';
         $formstart .= '<input type="hidden" class="atksubmitaction" />';
 
         return $formstart;
     }
 
     /**
-     * Returns a htmlpage displaying all displayable attributes.
+     * Returns an htmlpage displaying all displayable attributes.
      *
      * @param array $record The record to display.
      * @param Node $node The node for which a viewPage is displayed.
@@ -89,8 +84,8 @@ class ViewHandler extends ViewEditBase
         $ui = $this->getUi();
 
         if (is_object($ui)) {
-
-            if ($this->m_node->hasNestedAttributes()) {
+            
+            if($this->m_node->hasNestedAttributes()) {
                 $this->m_node->loadNestedAttributesValue($record);
             }
 
@@ -113,17 +108,16 @@ class ViewHandler extends ViewEditBase
                 return $output;
             }
 
-            $this->getPage()->setTitle(Tools::atktext('app_shorttitle') . ' - ' . $node->actionTitle($this->m_action, $record));
+            $this->getPage()->setTitle(Tools::atktext('app_shorttitle').' - '.$node->actionTitle($this->m_action, $record));
 
             $vars = array('title' => $node->actionTitle($this->m_action, $record), 'content' => $output);
 
-            return $ui->renderBox($vars, $this->m_boxTemplate);
+            $total = $ui->renderBox($vars, $this->m_boxTemplate);
 
+            return $total;
         } else {
             Tools::atkerror('ui object error');
         }
-
-        return '';
     }
 
     /**
@@ -160,7 +154,7 @@ class ViewHandler extends ViewEditBase
      * @param string $template The template to use for the view form
      *
      * @return string HTML code of the page
-     * @throws Exception
+     * @throws SmartyException
      */
     public function viewForm($record, $mode = 'view', $template = '')
     {
@@ -184,9 +178,6 @@ class ViewHandler extends ViewEditBase
             $field = &$data['fields'][$i];
             $tplfield = [];
 
-            /** @var Attribute $attribute */
-            $attribute = $field['attribute'];
-
             $classes = [];
             if ($field['sections'] == '*') {
                 $classes[] = 'alltabs';
@@ -194,12 +185,12 @@ class ViewHandler extends ViewEditBase
                 if ($field['html'] == 'section') {
                     // section should only have the tab section classes
                     foreach ($field['tabs'] as $section) {
-                        $classes[] = 'section_' . str_replace('.', '_', $section);
+                        $classes[] = 'section_'.str_replace('.', '_', $section);
                     }
                 } else {
                     if (is_array($field['sections'])) {
                         foreach ($field['sections'] as $section) {
-                            $classes[] = 'section_' . str_replace('.', '_', $section);
+                            $classes[] = 'section_'.str_replace('.', '_', $section);
                         }
                     }
                 }
@@ -217,31 +208,23 @@ class ViewHandler extends ViewEditBase
                         $field['tabs'])) && (!is_array($field['sections']) || Tools::count(array_intersect($field['sections'], $visibleSections)) > 0);
 
             // Give the row an id if it doesn't have one yet
-            if (!isset($field['id'])) {
+            if (!isset($field['id']) || empty($field['id'])) {
                 $field['id'] = Tools::getUniqueId('anonymousattribrows');
             }
 
             // ar_ stands voor 'attribrow'.
-            $tplfield['rowid'] = 'ar_' . $field['id']; // The id of the containing row
+            $tplfield['rowid'] = 'ar_'.$field['id']; // The id of the containing row
 
             /* check for separator */
             if ($field['html'] == '-' && $i > 0 && $data['fields'][$i - 1]['html'] != '-') {
                 $tplfield['line'] = '<hr>';
-
-            } elseif ($field['html'] == '-') {
-                /* double separator, ignore */
-
-            } elseif ($field['html'] == 'section') {
-                /* sections */
+            } /* double separator, ignore */ elseif ($field['html'] == '-') {
+            } /* sections */ elseif ($field['html'] == 'section') {
                 $tplfield['line'] = $this->getSectionControl($field, $mode);
-
-            } elseif (isset($field['line'])) {
-                /* only full HTML */
+            } /* only full HTML */ elseif (isset($field['line'])) {
                 $tplfield['line'] = $field['line'];
-
-            } else {
-                /* edit field */
-                if ($attribute->m_ownerInstance->getNumbering()) {
+            } /* edit field */ else {
+                if ($field['attribute']->m_ownerInstance->getNumbering()) {
                     $this->_addNumbering($field, $tplfield, $i);
                 }
 
@@ -257,39 +240,36 @@ class ViewHandler extends ViewEditBase
                 }
 
                 // Make the attribute and node names available in the template.
-                $tplfield['attribute'] = $attribute->fieldName();
-                $tplfield['node'] = $attribute->m_ownerInstance->atkNodeUri();
+                $tplfield['attribute'] = $field['attribute']->fieldName();
+                $tplfield['node'] = $field['attribute']->m_ownerInstance->atkNodeUri();
 
                 /* html source */
                 $tplfield['widget'] = $field['html'];
                 $editsrc = $field['html'];
 
-                $tplfield['id'] = str_replace('.', '_', $node->atkNodeUri() . '_' . $field['id']);
+                $tplfield['id'] = str_replace('.', '_', $node->atkNodeUri().'_'.$field['id']);
 
                 $tplfield['full'] = $editsrc;
 
-                $column = $attribute->getColumn();
+                $column = $field['attribute']->getColumn();
                 $tplfield['column'] = $column;
-
-                $tplfield['labeltop'] = $attribute->isLabelPositionTop();
             }
-
             $fields[] = $tplfield; // make field available in numeric array
             $params[$field['name']] = $tplfield; // make field available in associative array
             $attributes[$field['name']] = $tplfield; // make field available in associative array
         }
-
         $ui = $this->getUi();
+
         $tabTpl = $this->_getTabTpl($node, $tabs, $mode, $record);
 
         if ($template) {
-            $innerform = $ui->render($template, ['fields' => $fields, 'attributes' => $attributes]);
+            $innerform = $ui->render($template, array('fields' => $fields, 'attributes' => $attributes));
         } else {
             if (Tools::count(array_unique($tabTpl)) > 1) {
                 $tabForm = $this->_renderTabs($fields, $tabTpl);
                 $innerform = implode(null, $tabForm);
             } else {
-                $innerform = $ui->render($node->getTemplate('view', $record, $tab), ['fields' => $fields, 'attributes' => $attributes]);
+                $innerform = $ui->render($node->getTemplate('view', $record, $tab), array('fields' => $fields, 'attributes' => $attributes));
             }
         }
 

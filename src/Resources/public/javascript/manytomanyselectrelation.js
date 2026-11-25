@@ -4,47 +4,26 @@ if (!window.ATK) {
 
 ATK.ManyToManySelectRelation = {
     deleteItem: function (el) {
-        jQuery(el).closest('.atkmanytomanyselectrelation-selected').remove();
+        jQuery(el).closest('li').remove();
     },
 
     add: function (el, url, makeSortable) {
-        const $el = jQuery(el);
+        var $el = jQuery(el);
 
-        if ($el.val()) {
-            const boxParent = $el.closest('.atkmanytomanyselectrelation-addition');
+        if($el.val()) {
+            var li = $el.closest('li');
 
             jQuery.post(url, {selector: $el.val()}, function (responseText) {
-                let newItem = null;
-                jQuery(responseText).each(function () {
-                    if (jQuery(this).hasClass('atkmanytomanyselectrelation-selected')) {
-                        newItem = this;
+                li.before(responseText);
+                li.find('select.ManyToOneRelation').val(null).trigger('change');
+                jQuery('<div>').html(responseText).find('script').each(function () {
+                    var text = jQuery(this).text();
+                    if (text) {
+                        jQuery.globalEval(text);
                     }
                 });
-
-                // adds the new item to the list
-                let manyToManySelectRelationSelectedBox = boxParent.parent().next('.atkmanytomanyselectrelation-selection');
-                if (manyToManySelectRelationSelectedBox.length === 0) {
-                    // removes list null value
-                    boxParent.parent().next('i').remove();
-                    boxParent.parent().after('<div class="atkmanytomanyselectrelation-selection row justify-content-center"></div>');
-                }
-                manyToManySelectRelationSelectedBox = boxParent.parent().next('.atkmanytomanyselectrelation-selection'); // now must exists
-                manyToManySelectRelationSelectedBox.append(newItem);
-
-                // empty the select
-                boxParent.find('select.ManyToOneRelation').val(null).trigger('change');
-
-                // loads js scripts, here it seems to be useless...
-                // jQuery('<div>').html(responseText).find('script').each(function () {
-                //     var text = jQuery(this).text();
-                //     if (text) {
-                //         jQuery.globalEval(text);
-                //     }
-                // });
-
-                // order by id, it doesn't work...
                 if (makeSortable) {
-                    // ATK.ManyToManySelectRelation.makeItemsSortable(li.closest('ul').attr('id'));
+                    ATK.ManyToManySelectRelation.makeItemsSortable(li.closest('ul').attr('id'));
                 }
             });
         }

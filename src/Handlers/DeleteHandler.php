@@ -50,7 +50,7 @@ class DeleteHandler extends ActionHandler
             // confirmation page yet, so we display it
             $page = $this->getPage();
             $page->addContent($this->m_node->renderActionPage('delete',
-                $this->m_node->confirmAction($this->m_postvars[Node::PARAM_ATKSELECTOR], 'delete', true, true, $this->getCSRFToken())));
+                $this->m_node->confirmAction($this->m_postvars['atkselector'], 'delete', true, true, $this->getCSRFToken())));
         } else {
             $this->_handleCancelAction();
         }
@@ -66,11 +66,11 @@ class DeleteHandler extends ActionHandler
     /**
      * Check if we are allowed to remove the given records.
      *
-     * @return bool is "delete action" allowed?
+     * @return bool is delete action allowed?
      */
     public function _checkAllowed()
     {
-        $atkselector = $this->m_postvars[Node::PARAM_ATKSELECTOR];
+        $atkselector = $this->m_postvars['atkselector'];
         if (is_array($atkselector)) {
             $atkselector_str = '(('.implode($atkselector, ') OR (').'))';
         } else {
@@ -111,7 +111,7 @@ class DeleteHandler extends ActionHandler
         if ($result === true) {
             $location = $this->m_node->feedbackUrl('delete', self::ACTION_SUCCESS);
         } else {
-            $location = $this->m_node->feedbackUrl('delete', self::ACTION_FAILED, [], $result);
+            $location = $this->m_node->feedbackUrl('delete', self::ACTION_FAILED, null, $result);
         }
 
         $this->m_node->redirect($location);
@@ -125,7 +125,7 @@ class DeleteHandler extends ActionHandler
     protected function _doDeleteDb()
     {
         $db = $this->m_node->getDb();
-        if ($this->m_node->deleteDb($this->m_postvars[Node::PARAM_ATKSELECTOR])) {
+        if ($this->m_node->deleteDb($this->m_postvars['atkselector'])) {
             $db->commit();
             $this->clearCache();
 
@@ -144,7 +144,7 @@ class DeleteHandler extends ActionHandler
      */
     protected function _doDeleteSession()
     {
-        $selector = Tools::atkArrayNvl($this->m_postvars, Node::PARAM_ATKSELECTOR, '');
+        $selector = Tools::atkArrayNvl($this->m_postvars, 'atkselector', '');
 
         return SessionStore::getInstance()->deleteDataRowForSelector($selector);
     }
@@ -162,7 +162,7 @@ class DeleteHandler extends ActionHandler
             if ($attrib->deleteAllowed() !== true) {
                 $db = $this->m_node->getDb();
                 $db->rollback();
-                $location = $this->m_node->feedbackUrl('delete', self::ACTION_FAILED, [],
+                $location = $this->m_node->feedbackUrl('delete', self::ACTION_FAILED, null,
                     sprintf(Tools::atktext('attrib_delete_not_allowed'), Tools::atktext($attrib->m_name, $this->m_node->m_module, $this->m_node->m_type))
                 );
                 $this->m_node->redirect($location);

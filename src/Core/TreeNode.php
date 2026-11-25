@@ -2,10 +2,8 @@
 
 namespace Sintattica\Atk\Core;
 
-use Exception;
 use Sintattica\Atk\Attributes\Attribute;
 use Sintattica\Atk\Handlers\ActionHandler;
-use Sintattica\Atk\Handlers\AdminHandler;
 use Sintattica\Atk\Session\SessionManager;
 use Sintattica\Atk\Utils\StringParser;
 
@@ -61,13 +59,13 @@ class TreeNode extends Node
      * @param ActionHandler $handler
      * @param array $record
      */
-    public function action_admin(ActionHandler $handler, array $record = array()): void
+    public function action_admin($handler, $record = '')
     {
         if ($this->hasFlag(self::NF_TREE_NO_ROOT_ADD)) {
             $this->m_flags |= self::NF_NO_ADD;
         }
 
-        $handler->action_admin($record);
+        return $handler->action_admin($record);
     }
 
     /**
@@ -75,7 +73,7 @@ class TreeNode extends Node
      *
      * @return TreeToolsTree Tree object
      */
-    public function buildTree(): TreeToolsTree
+    public function buildTree()
     {
         Tools::atkdebug('treenode::buildtree() '.$this->m_parent);
         $recordset = $this->select(Tools::atkArrayNvl($this->m_postvars, 'atkfilter', ''))->excludes($this->m_listExcludes)->mode('admin')->getAllRows();
@@ -92,12 +90,9 @@ class TreeNode extends Node
      * Admin page displays records and the actions that can be performed on
      * them (edit, delete) in a Treeview.
      *
-     * @param AdminHandler $handler The action handler object
-     * @param array $actions
-     * @return string
-     * @throws Exception
+     * @param ActionHandler $handler The action handler object
      */
-    function adminPage(AdminHandler $handler, array $actions = []): string
+    public function adminPage($handler)
     {
         global $g_maxlevel;
 
@@ -157,13 +152,13 @@ class TreeNode extends Node
     }
 
     /**
-     * Recursive function which fills an array with all the items of the tree.
+     * Recursive funtion whitch fills an array with all the items of the tree.
      * DEPRECATED, use treeToArray instead.
      *
-     * @param mixed|string $tree Tree
+     * @param mixed $tree Tree
      * @param int $level Level
      */
-    public function Fill_tree(mixed $tree = '', int $level = 0): string
+    public function Fill_tree($tree = '', $level = 0)
     {
         Tools::atkdebug('WARNING: use of deprecated function Fill_tree, use treeToArray instead');
 
@@ -171,12 +166,12 @@ class TreeNode extends Node
     }
 
     /**
-     * Recursive function which fills an array with all the items of the tree.
+     * Recursive funtion whitch fills an array with all the items of the tree.
      *
-     * @param mixed|string $tree Tree
+     * @param mixed $tree Tree
      * @param int $level Level
      */
-    public function treeToArray(mixed $tree = '', int $level = 0): string
+    public function treeToArray($tree = '', $level = 0)
     {
         static $s_count = 1;
         global $g_maxlevel, $exp_index;
@@ -209,9 +204,10 @@ class TreeNode extends Node
      * Returns the full path to a tree icon from the current theme.
      *
      * @param string $name Name of the icon (for example "expand" or "leaf")
+     *
      * @return string Path to the icon file
      */
-    public function getIcon(string $name): string
+    public function getIcon($name)
     {
         return $name;
     }
@@ -222,9 +218,10 @@ class TreeNode extends Node
      * @param bool $showactions Show actions?
      * @param bool $expandAll Expand all leafs?
      * @param bool $foldable Is this tree foldable?
+     *
      * @return string
      */
-    public function GraphTreeRender(bool $showactions = true, bool $expandAll = false, bool $foldable = true): string
+    public function GraphTreeRender($showactions = true, $expandAll = false, $foldable = true)
     {
         global $g_maxlevel, $exp_index;
 
@@ -533,15 +530,15 @@ class TreeNode extends Node
                     }
                     if ($cnt > 0) {
                         if (!$this->hasFlag(self::NF_NO_EDIT)) {
-                            $actions['edit'] = Config::getGlobal('dispatcher').'?atknodeuri='.$this->atkNodeUri().'&atkaction=edit&' . parent::PARAM_ATKSELECTOR . '='.$this->m_table.'.'.$this->m_primaryKey[0].'='.$this->m_tree[$cnt]['id'];
+                            $actions['edit'] = Config::getGlobal('dispatcher').'?atknodeuri='.$this->atkNodeUri().'&atkaction=edit&atkselector='.$this->m_table.'.'.$this->m_primaryKey[0].'='.$this->m_tree[$cnt]['id'];
                         }
                         if (($this->hasFlag(self::NF_COPY) && $this->allowed('add') && !$this->hasFlag(self::NF_TREE_NO_ROOT_COPY)) || ($this->m_tree[$cnt]['level'] != 1 && $this->hasFlag(self::NF_COPY) && $this->allowed('add'))) {
-                            $actions['copy'] = Config::getGlobal('dispatcher').'?atknodeuri='.$this->atkNodeUri().'&atkaction=copy&' . parent::PARAM_ATKSELECTOR . '='.$this->m_table.'.'.$this->m_primaryKey[0].'='.$this->m_tree[$cnt]['id'];
+                            $actions['copy'] = Config::getGlobal('dispatcher').'?atknodeuri='.$this->atkNodeUri().'&atkaction=copy&atkselector='.$this->m_table.'.'.$this->m_primaryKey[0].'='.$this->m_tree[$cnt]['id'];
                         }
                         if ($this->hasFlag(self::NF_NO_DELETE) || ($this->hasFlag(self::NF_TREE_NO_ROOT_DELETE) && $this->m_tree[$cnt]['level'] == 1)) {
                             // Do nothing
                         } else {
-                            $actions['delete'] = Config::getGlobal('dispatcher').'?atknodeuri='.$this->atkNodeUri().'&atkaction=delete&' . parent::PARAM_ATKSELECTOR . '='.$this->m_table.'.'.$this->m_primaryKey[0].'='.$this->m_tree[$cnt]['id'];
+                            $actions['delete'] = Config::getGlobal('dispatcher').'?atknodeuri='.$this->atkNodeUri().'&atkaction=delete&atkselector='.$this->m_table.'.'.$this->m_primaryKey[0].'='.$this->m_tree[$cnt]['id'];
                         }
                     }
 
@@ -585,11 +582,10 @@ class TreeNode extends Node
     /**
      * Copies a record and the Childs if there are any.
      *
-     * @param array &$record The record to copy
+     * @param array $record The record to copy
      * @param string $mode The mode we're in (usually "copy")
-     * @throws Exception
      */
-    public function copyDb(array &$record, string $mode = 'copy'): bool
+    public function copyDb(&$record, $mode = 'copy')
     {
         $oldparent = $record[$this->m_primaryKey[0]];
 
@@ -611,11 +607,10 @@ class TreeNode extends Node
      * @todo shouldn't we recursively call copyDb here? instead of ourselves
      *
      * @param string $selector Selector
-     * @param int|string $parent Parent ID
+     * @param int $parent Parent ID
      * @param string $mode The mode we're in
-     * @throws Exception
      */
-    public function copyChildren(string $selector, int|string $parent = '', string $mode = 'copy'): string
+    public function copyChildren($selector, $parent = '', $mode = 'copy')
     {
         $recordset = $this->select($selector)->mode($mode)->getAllRows();
 
@@ -641,12 +636,9 @@ class TreeNode extends Node
      * delete record from the database also the childrecords.
      * todo: instead of delete, set the deleted flag.
      *
-     * @param string $selector
-     * @param bool $exectrigger
-     * @param bool $failwhenempty
-     * @return bool
+     * @param string $selector Selector
      */
-    public function deleteDb(string $selector, bool $exectrigger = true, bool $failwhenempty = false): bool
+    public function deleteDb($selector, $exectrigger = true, $failwhenempty = false)
     {
         Tools::atkdebug('Retrieve record');
         $recordset = $this->select($selector)->mode('delete')->getAllRows();
@@ -678,7 +670,7 @@ class TreeNode extends Node
             $this->postDelete($recordset[$i]);
         }
 
-        return true;
+        return $recordset;
         // todo: instead of delete, set the deleted flag.
     }
 
@@ -688,7 +680,7 @@ class TreeNode extends Node
      * @param string $selector Selector
      * @param int $parent Id of the parent
      */
-    public function deleteChildren(string $selector, int $parent): void
+    public function deleteChildren($selector, $parent)
     {
         Tools::atkdebug('Check for child records of the Child');
         $recordset = $this->select($this->m_table.'.'.$this->m_parent.'='.$parent)->mode('delete')->getAllRows();

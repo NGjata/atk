@@ -7,21 +7,49 @@ use Sintattica\Atk\Utils\Json;
 
 class JsonAttribute extends TextAttribute
 {
+
     private $jsonIndentChar = "&nbsp;&nbsp;&nbsp;&nbsp;";
     private $jsonNewlineChar = "<br />";
 
-    public function display(array $record, string $mode): string
+    public function display($record, $mode)
     {
-        $displayContent = '';
+        $displayContent = "";
         $fieldContent = $record[$this->fieldName()];
 
-        if ($fieldContent !== null && $fieldContent !== '') {
-            $encodedJson = Json::prettify(json_encode($fieldContent, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), $this->jsonNewlineChar, $this->jsonIndentChar);
-            $displayContent = $this->formatDisplay($encodedJson, $mode);
+        if ($fieldContent != null && $fieldContent != "") {
+
+            $encodedJson = Json::prettify(json_encode($fieldContent, JSON_PRETTY_PRINT), $this->jsonNewlineChar, $this->jsonIndentChar);
+
+            if ($mode == 'list') {
+                $style = "min-width: {$this->getMinWidth()};";
+                $classes = '';
+
+                switch ($this->getDisplayMode()) {
+                    case self::MODE_INLINE:
+                        if ($this->getMaxChars()) {
+                            $displayContent = Tools::truncateHTML($encodedJson, $this->getMaxChars(), '...');
+                        }
+                        break;
+                    case self::MODE_SCROLL:
+                        $classes = 'text-wrap';
+                        $style .= " max-height: {$this->getMaxHeight()}; overflow-y: auto; ";
+                        $displayContent = $encodedJson;
+                        break;
+                    default:
+                        $classes = 'text-wrap';
+                        $maxChars = $this->getMaxChars() ?: '200';
+                        $displayContent = Tools::truncateHTML($encodedJson, $maxChars, '...');
+                }
+
+                $displayContent = "<div class='$classes' style='$style'>$displayContent</div>";
+            } else {
+                $displayContent = $encodedJson;
+            }
         }
 
         return $displayContent;
     }
+
 
     public function edit($record, $fieldprefix, $mode)
     {
@@ -29,9 +57,7 @@ class JsonAttribute extends TextAttribute
             $record[$this->fieldName()] = json_encode($record[$this->fieldName()] ?: []);
         }
 
-        if ($record[$this->fieldName()]) {
-            $record[$this->fieldName()] = Json::prettify($record[$this->fieldName()]);
-        }
+        $record[$this->fieldName()] = Json::prettify($record[$this->fieldName()]);
 
         return parent::edit($record, $fieldprefix, $mode);
     }
@@ -112,37 +138,4 @@ class JsonAttribute extends TextAttribute
         return $this;
     }
 
-    /**
-     * @param array|string $array
-     * @param int $level
-     * @param string $itemSep
-     * @return string
-     */
-    public static function arrayToString($array, int $level = 0, string $itemSep = "<br>"): string
-    {
-        if (!is_array($array)) {
-            if ($array === null) {
-                $array = "null";
-            } elseif ($array === false) {
-                $array = "false";
-            }
-            return $array . $itemSep;
-        }
-
-        $result = '';
-        $oldLevel = $level;
-        foreach ($array as $key => $value) {
-            if ($oldLevel == $level) {
-                $level++;
-            }
-            $result = str_repeat("&nbsp", $level * 3);
-            $result .= "<b>" . $key . "</b>: ";
-            if (is_array($value)) {
-                $result .= "<br>";
-            }
-            $result .= self::arrayToString($value, $level, $itemSep);
-        }
-
-        return $result;
-    }
 }

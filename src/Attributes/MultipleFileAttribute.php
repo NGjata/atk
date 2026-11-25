@@ -3,10 +3,12 @@
 namespace Sintattica\Atk\Attributes;
 
 use Sintattica\Atk\Core\Tools;
+use Sintattica\Atk\Core\Config;
+use Sintattica\Atk\Ui\Page;
 
 /**
- * This is an extent of the famous atkfileattribute :).
- * Now it's possible to insert one or more files in one database field.
+ * This is an extend of the famous atkfileattribute :). Now its possible
+ * to insert one or more files in one database field.
  *
  * @author Martin Roest <martin@ibuildings.nl>
  */
@@ -25,36 +27,36 @@ class MultipleFileAttribute extends FileAttribute
      * @param string|array $dir Can be a string with the Directory with images/files or an array with a Directory and a Display Url
      *
      */
-    public function __construct($name, $flags, $dir)
+    public function __construct($name, $flags = 0, $dir)
     {
         $flags = $flags | self::AF_CASCADE_DELETE;
 
         parent::__construct($name, $flags, '');
 
         if (is_array($dir)) {
-            $this->m_dir = $this->addSlash($dir[0]);
-            $this->m_url = $this->addSlash($dir[1]);
+            $this->m_dir = $this->AddSlash($dir[0]);
+            $this->m_url = $this->AddSlash($dir[1]);
         } else {
-            $this->m_dir = $this->addSlash($dir);
-            $this->m_url = $this->addSlash($dir);
+            $this->m_dir = $this->AddSlash($dir);
+            $this->m_url = $this->AddSlash($dir);
         }
     }
 
     /**
      * Returns an array with files extracted from the content of a databasefield.
      *
-     * @param string $dir content of dbfield
-     * @param string $del
+     * @param string $str content of dbfield
+     * @param string $del delimiter
      *
      * @return array of files
      */
-    public function getFiles(string $dir, string $del = ''): array
+    public function getFiles($str, $del = '')
     {
         if ($del == '') {
             $del = $this->m_delimiter;
         }
 
-        return explode($del, $dir);
+        return explode($del, $str);
     }
 
     public function edit($record, $fieldprefix, $mode)
@@ -99,11 +101,11 @@ class MultipleFileAttribute extends FileAttribute
     /**
      * Convert value to record for database.
      *
-     * @param array $record Array with Fields
+     * @param array $rec Array with Fields
      *
      * @return mixed Nothing or Fieldname or Original filename
      */
-    public function value2db(array $record)
+    public function value2db(array $rec)
     {
         $select = $_REQUEST['select_'.$this->fieldName()];
         $r = '';
@@ -125,28 +127,28 @@ class MultipleFileAttribute extends FileAttribute
     /**
      * Convert value to string.
      *
-     * @param array $record Array with fields
+     * @param array $rec Array with fields
      *
      * @return array with tmpfile, orgfilename,filesize
      */
-    public function db2value($record)
+    public function db2value($rec)
     {
-        return [
-            'tmpfile' => $this->m_dir.$record[$this->fieldName()],
-            'orgfilename' => $record[$this->fieldName()],
+        return array(
+            'tmpfile' => $this->m_dir.$rec[$this->fieldName()],
+            'orgfilename' => $rec[$this->fieldName()],
             'filesize' => '?',
-        ];
+        );
     }
 
     /**
      * Display values.
      *
-     * @param array<string, mixed> $record Array with fields
+     * @param array $record Array with fields
      * @param string $mode
      *
      * @return string html
      */
-    public function display(array $record, string $mode): string
+    public function display($record, $mode)
     {
         $files = explode($this->m_delimiter, $record[$this->fieldName()]['orgfilename']);
         $prev_type = array('jpg', 'jpeg', 'gif', 'tif', 'png', 'bmp', 'htm', 'html', 'txt');  // file types for preview

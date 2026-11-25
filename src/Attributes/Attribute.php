@@ -474,12 +474,6 @@ class Attribute
      */
     public $m_forceupdate = false;
 
-    /**
-     * Wether to force an export of the attribute
-     * @var bool
-     */
-    private $forceExport = false;
-
     /*
      * Array for containing onchange javascript code
      * @access private
@@ -547,6 +541,7 @@ class Attribute
      */
     private $m_column;
 
+
     /**
      * View callback.
      *
@@ -580,49 +575,8 @@ class Attribute
     private $nl2br = true;
     private $htmlSpecialChars = true;
 
-    private ?string $nestedAttributeField = null;
 
-    private $minWidth = null;
-    private $maxWidth = null;
-    private $maxHeight = null; // available only in scroll mode
-    private $maxChars = null;
-    private $textWrap = true;
-
-    /**
-     * Adds 'text-wrap' class to the recordListTh in the recordlist.tpl
-     * @var bool
-     */
-    private $titleWrap = false;
-
-    private $labelPositionTop = false;
-
-    /**
-     * Display long text in row.
-     * You can specify $maxChars for the length of the text to show.
-     */
-    public const MODE_INLINE = 'inline';
-
-    /**
-     * Display the text stretched in height.
-     * You must specify a $minWidth.
-     * You can specify a $maxHeight in this display mode
-     */
-    public const MODE_SCROLL = 'scroll';
-
-    /**
-     * Display the text as wrapped. As default, it truncates the text at
-     * $maxChars in length, it can be set with setMaxChars()
-     */
-    public const MODE_DEFAULT = 'default';
-
-    /**
-     * If display mode is Scroll then we can specify a max height to start scrolling.
-     * If the display mode is INLINE then we can specify a max number of characters to show.
-     * If the display mode is DEFAULT then the inline mode with max 200 chars is set.
-     */
-    private const MODES_ALLOWED = [self::MODE_DEFAULT, self::MODE_SCROLL, self::MODE_INLINE];
-
-    private $displayMode = self::MODE_DEFAULT;
+    private $isNestedAttribute = false;
 
     /**
      * Constructor.
@@ -645,8 +599,6 @@ class Attribute
     {
         $this->m_name = $name;
         $this->setFlags((int)$flags);
-        $this->setMaxChars(200);
-        $this->setMinWidth('50px');
 
         // default class
         $this->addCSSClass($this->get_class_name());
@@ -674,18 +626,26 @@ class Attribute
 
     /**
      * Sets the owner instance.
+     *
+     * @param Node $instance
      */
-    public function setOwnerInstance(Node $instance): static
+    public function setOwnerInstance($instance)
     {
         $this->m_ownerInstance = $instance;
-        return $this;
     }
 
+    /**
+     * @return int
+     */
     public function getOrder(): int
     {
         return $this->m_order;
     }
 
+    /**
+     * @param int $m_order
+     * @return self
+     */
     public function setOrder(int $m_order): self
     {
         $this->m_order = $m_order;
@@ -712,112 +672,6 @@ class Attribute
     public function getFlags()
     {
         return $this->m_flags;
-    }
-
-    public function getMinWidth(): ?string
-    {
-        return $this->minWidth;
-    }
-
-    public function setMinWidth(?string $minWidth): self
-    {
-        $this->minWidth = $minWidth;
-        return $this;
-    }
-
-    public function getMaxWidth(): ?string
-    {
-        return $this->maxWidth;
-    }
-
-    public function setMaxWidth(?string $maxWidth): self
-    {
-        $this->maxWidth = $maxWidth;
-        return $this;
-    }
-
-    public function getMaxHeight(): ?string
-    {
-        return $this->maxHeight;
-    }
-
-    public function setMaxHeight(?string $maxHeight): self
-    {
-        $this->maxHeight = $maxHeight;
-        return $this;
-    }
-
-    public function getMaxChars(): ?int
-    {
-        return $this->maxChars;
-    }
-
-    public function setMaxChars(?int $maxChars): self
-    {
-        $this->maxChars = $maxChars;
-        return $this;
-    }
-
-    public function getDisplayMode(): ?string
-    {
-        return $this->displayMode;
-    }
-
-    public function setDisplayMode(string $displayMode): self
-    {
-        if (in_array($displayMode, $this->getAllowedDisplayModes())) {
-            $this->displayMode = $displayMode;
-        }
-        return $this;
-    }
-
-    public function getAllowedDisplayModes(): array
-    {
-        return self::MODES_ALLOWED;
-    }
-
-    public function isTextWrap(): bool
-    {
-        return $this->textWrap;
-    }
-
-    public function setTextWrap(bool $textWrap): self
-    {
-        $this->textWrap = $textWrap;
-        return $this;
-    }
-
-    public function isTitleWrap(): bool
-    {
-        return $this->titleWrap;
-    }
-
-    public function setTitleWrap(bool $titleWrap): self
-    {
-        $this->titleWrap = $titleWrap;
-        return $this;
-    }
-
-    public function getSearchSize(): int
-    {
-        return $this->m_searchsize;
-    }
-
-    public function setSearchSize(int $searchSize): self
-    {
-        $this->m_searchsize = $searchSize;
-        return $this;
-    }
-
-    public function getMaxSize(): int
-    {
-        return $this->m_maxsize;
-    }
-
-    public function setMaxSize(int $maxsize): self
-    {
-        $this->m_maxsize = $maxsize;
-        return $this;
     }
 
     /**
@@ -858,7 +712,7 @@ class Attribute
      *
      * @return Attribute The instance of this Attribute
      */
-    public function setFlags($flags = 0): static
+    public function setFlags($flags = 0)
     {
         $this->m_flags = 0;
         $this->addFlag($flags); // always call addFlag
@@ -934,9 +788,10 @@ class Attribute
      *
      * @return Attribute The instance of this Attribute
      */
-    public function setDisabledModes($flags = 0): static
+    public function setDisabledModes($flags = 0)
     {
         $this->m_disabledModes = $flags;
+
         return $this;
     }
 
@@ -992,13 +847,17 @@ class Attribute
      * own conversion.
      * This is the exact opposite of the db2value method.
      *
-     * @param array $record The record that holds this attribute's value.
+     * @param array $rec The record that holds this attribute's value.
      *
      * @return string The database compatible value
      */
-    public function value2db(array $record)
+    public function value2db(array $rec)
     {
-        return isset($record[$this->fieldName()]) ? $this->escapeSQL($record[$this->fieldName()]) : null;
+        if (is_array($rec) && isset($rec[$this->fieldName()])) {
+            return $this->escapeSQL($rec[$this->fieldName()]);
+        }
+
+        return null;
     }
 
     /**
@@ -1010,14 +869,14 @@ class Attribute
      *
      * This is the exact opposite of the value2db method.
      *
-     * @param array $record The database record that holds this attribute's value
+     * @param array $rec The database record that holds this attribute's value
      *
      * @return mixed The internal value
      */
-    public function db2value($record)
+    public function db2value($rec)
     {
-        if (isset($record[$this->fieldName()])) {
-            return $record[$this->fieldName()] === null ? null : $record[$this->fieldName()];
+        if (isset($rec[$this->fieldName()])) {
+            return $rec[$this->fieldName()] === null ? null : $rec[$this->fieldName()];
         }
 
         return null;
@@ -1048,6 +907,7 @@ class Attribute
     public function setInitialValue($value)
     {
         $this->m_initialValue = $value;
+
         return $this;
     }
 
@@ -1072,7 +932,7 @@ class Attribute
      * @param array $postvars The array with html posted values ($_POST, for
      *                        example) that holds this attribute's value.
      *
-     * @return string|array|null The internal value
+     * @return string|null The internal value
      */
     public function fetchValue($postvars)
     {
@@ -1164,24 +1024,18 @@ class Attribute
     {
         if (Tools::count($this->m_onchangecode)) {
             $page = Page::getInstance();
-
-            $script = "
-               function " . $this->getHtmlId($fieldprefix) . $elementNr . "_onChange(el)
-                {
-                  $this->m_onchangehandler_init
-                  " . implode("\n      ", $this->m_onchangecode) . "
-                }\n
-            ";
-
-            $page->register_scriptcode($script);
+            $page->register_scriptcode('
+    function ' . $this->getHtmlId($fieldprefix) . $elementNr . "_onChange(el)
+    {
+      {$this->m_onchangehandler_init}
+      " . implode("\n      ", $this->m_onchangecode) . "
+    }\n");
         }
     }
 
     /**
      * Returns a piece of html code for hiding this attribute in an HTML form,
      * while still posting its value. (<input type="hidden">).
-     * In cases when the attribute is read-only or hidden (atk inserts a hidden html attribute so it can retain
-     * the value when submitting the form)
      *
      * @param array $record
      * @param string $fieldprefix
@@ -1196,17 +1050,18 @@ class Attribute
             return $this->m_ownerInstance->$method($record, $fieldprefix, $mode);
         }
 
-        $value = $record[$this->fieldName()] ?? null;
+        // the next if-statement is a workaround for derived attributes which do
+        // not override the hide() method properly. This will not give them a
+        // working hide() functionality but at least it will not give error messages.
+        $value = isset($record[$this->fieldName()]) ? $record[$this->fieldName()] : null;
+        if (!is_array($value)) {
+            return '<input type="hidden" id="' . $this->getHtmlId($fieldprefix) . '" name="' . $this->getHtmlName($fieldprefix) . '" value="' . htmlspecialchars($value) . '">';
 
-        if (!isset($value)) {
-            return "";
+        } else {
+            Tools::atkdebug('Warning attribute ' . $this->m_name . ' has no proper hide method!');
         }
 
-        if (is_array($value)) {
-            $value = json_encode($value, JSON_PRETTY_PRINT);
-        }
-
-        return '<input type="hidden" id="' . $this->getHtmlId($fieldprefix) . '" name="' . $this->getHtmlName($fieldprefix) . '" value="' . htmlspecialchars($value) . '">';
+        return '';
     }
 
     /**
@@ -1317,16 +1172,15 @@ class Attribute
             if ($mode == 'edit' || ($mode == 'add' && (!$this->isEmpty($defaults) || $this instanceof HiddenAttribute))) {
                 $arr['hide'][] = $this->hide($defaults, $fieldprefix, $mode);
             }
-        } else {
-            /* edit */
-
+        } /* edit */ else {
             global $ATK_VARS;
 
-            $entry = [
+
+            $entry = array(
                 'name' => $this->m_name,
                 'obligatory' => $this->hasFlag(self::AF_OBLIGATORY),
                 'attribute' => &$this,
-            ];
+            );
 
             $entry['class'] = $this->m_rowCssClasses;
 
@@ -1356,7 +1210,7 @@ class Attribute
      *
      * @return Attribute The instance of this Attribute
      */
-    public function setTabs($tabs): static
+    public function setTabs($tabs)
     {
         if (empty($tabs) && isset($this->m_ownerInstance) && is_object($this->m_ownerInstance)) {
             $tabs = array($this->m_ownerInstance->m_default_tab);
@@ -1392,7 +1246,7 @@ class Attribute
      *
      * @return Attribute The instance of this Attribute
      */
-    public function setSections($sections): static
+    public function setSections($sections)
     {
         if ($sections == null) {
             $this->m_sections = [];
@@ -1416,9 +1270,9 @@ class Attribute
     /**
      * Get column.
      *
-     * @return string|null column name
+     * @return string column name
      */
-    public function getColumn(): ?string
+    public function getColumn()
     {
         return $this->m_column;
     }
@@ -1426,22 +1280,23 @@ class Attribute
     /**
      * Set column.
      *
-     * @param string|null $name column name
+     * @param string $name column name
      *
      * @return Attribute The instance of this Attribute
      */
-    public function setColumn(?string $name): static
+    public function setColumn($name)
     {
         $this->m_column = $name;
+
         return $this;
     }
 
     /**
      * Returns the view callback (if set).
      *
-     * @return callable|null callback method
+     * @return mixed callback method
      */
-    protected function getViewCallback(): ?callable
+    protected function getViewCallback()
     {
         return $this->m_viewCallback;
     }
@@ -1452,12 +1307,11 @@ class Attribute
      * The callback is called instead of the regular display method of the
      * attribute.
      *
-     * @param callable $callback callback method
+     * @param mixed $callback callback method
      */
-    public function setViewCallback(callable $callback): static
+    public function setViewCallback($callback)
     {
         $this->m_viewCallback = $callback;
-        return $this;
     }
 
     /**
@@ -1481,10 +1335,8 @@ class Attribute
 
         if ($this->getViewCallback() != null) {
             $ret = call_user_func($this->getViewCallback(), $defaults, $mode, $this);
-
         } elseif (method_exists($this->m_ownerInstance, $method)) {
             $ret = $this->m_ownerInstance->$method($defaults, $mode, $this);
-
         } else {
             $ret = $this->display($defaults, $mode);
             if ($ret != '' && strlen($this->m_postfixlabel) > 0) {
@@ -1492,15 +1344,7 @@ class Attribute
             }
         }
 
-        if (in_array($mode, ['csv', 'plain'])) {
-            return $ret;
-        }
-
-        if ($ret != '') {
-            $ret = $this->formatDisplay($ret, $mode);
-        }
-
-        if ($mode == 'list') {
+        if (in_array($mode, ['csv', 'plain', 'list'])) {
             return $ret;
         }
 
@@ -1527,9 +1371,9 @@ class Attribute
     /**
      * Returns the edit callback (if set).
      *
-     * @return callable|null callback method
+     * @return mixed callback method
      */
-    protected function getEditCallback(): ?callable
+    protected function getEditCallback()
     {
         return $this->m_editCallback;
     }
@@ -1537,15 +1381,14 @@ class Attribute
     /**
      * Sets the edit callback.
      *
-     * The callback is called instead of the regular edit method of the
+     * The callback is called instead of the regular display method of the
      * attribute.
      *
-     * @param callable $callback callback method
+     * @param mixed $callback callback method
      */
-    public function setEditCallback(callable $callback): static
+    public function setEditCallback($callback)
     {
         $this->m_editCallback = $callback;
-        return $this;
     }
 
     /**
@@ -1634,7 +1477,7 @@ class Attribute
      * Framework method. It should not be necessary to call this method directly.
      *
      * @param string $action the action that is being performed on the node
-     * @param array $arr reference to the recordlist array
+     * @param array $arr reference to the the recordlist array
      * @param string $fieldprefix the fieldprefix
      * @param int $flags the recordlist flags
      * @param array $atksearch the current ATK search list (if not empty)
@@ -1666,10 +1509,6 @@ class Attribute
 
             if ($grid->hasFlag(DataGrid::SORT) && !$this->hasFlag(self::AF_NO_SORT)) {
                 $arr['heading'][$key]['order'] = $this->listHeaderSortOrder($columnConfig);
-            }
-
-            if ($this->titleWrap) {
-                $arr['heading'][$key]['css_class'] = 'text-wrap';
             }
 
             if ($grid->hasFlag(DataGrid::EXTENDED_SORT)) {
@@ -1754,11 +1593,12 @@ class Attribute
      *                            make a difference for $extended is true, but
      *                            derived attributes may reimplement this.
      * @param string $fieldprefix The fieldprefix of this attribute's HTML element.
-     * @param DataGrid|null $grid
+     * @param DataGrid $grid
      *
      * @return string A piece of html-code
      * @todo  find a better way to search on onetomanys that does not require
      *        something evil in Attribute
+     *
      */
     public function search($record, $extended = false, $fieldprefix = '', DataGrid $grid = null): string
     {
@@ -1772,14 +1612,14 @@ class Attribute
 
         $style = '';
         $type = $extended ? 'extended_search' : 'search';
-        $this->setSearchCssStyleMinWidth($record, $type);
         foreach ($this->getCssStyles($type) as $k => $v) {
             $style .= "$k:$v;";
         }
 
         $class = $this->getCSSClassAttribute();
+        $result = '';
 
-        $result = '<input type="text"';
+        $result .= '<input type="text"';
         $result .= ' id="' . $id . '"';
         $result .= ' ' . $class;
         $result .= ' name="' . $name . '"';
@@ -1790,6 +1630,7 @@ class Attribute
 
         return $result;
     }
+
 
     /**
      * Returns piece of html which is used for setting/selecting the search
@@ -1812,7 +1653,7 @@ class Attribute
         $searchMode = $this->getSearchMode();
         // Set current searchmode to first searchmode if not searching in extended form or no searchmode is set
         if (!$extended || empty($searchMode) || !in_array($searchMode, $searchModes)) {
-            $searchMode = $searchModes[0] ?? null;
+            $searchMode = isset($searchModes[0]) ? $searchModes[0] : null;
         }
 
         if ($extended && Tools::count($searchModes) > 1) {
@@ -1829,10 +1670,7 @@ class Attribute
             $field .= "<script>ATK.Tools.enableSelect2ForSelect('.extended-search-generic-attribute-dropdown');</script>";
 
         } else {
-            $field = '<input type="hidden" name="' . $this->getSearchModeFieldname($fieldPrefix) . '" value="' . $searchMode . '">';
-            if ($extended) {
-                $field .= '<input type="text" class="mt-1 mt-md-0 form-control form-control-sm" readonly value="' . Tools::atktext('search_' . $searchMode) . '"/>';
-            }
+            $field = '<input type="hidden" name="' . $this->getSearchModeFieldname($fieldPrefix) . '" value="' . $searchMode . '">' . ($extended ? Tools::atktext('search_' . $searchMode) : '');
         }
 
         return $field;
@@ -1954,9 +1792,10 @@ class Attribute
      *
      * @return Attribute The instance of this Attribute
      */
-    public function setAttributeSearchmode($searchmode): static
+    public function setAttributeSearchmode($searchmode)
     {
         $this->m_searchmode = $searchmode;
+
         return $this;
     }
 
@@ -1966,7 +1805,7 @@ class Attribute
      * The regular Attribute uses PHP's nl2br() and htmlspecialchars()
      * methods to prepare a value for display, unless $mode is "cvs".
      *
-     * @param array<string, mixed> $record The record that holds the value for this attribute
+     * @param array $record The record that holds the value for this attribute
      * @param string $mode The display mode ("view" for viewpages, or "list"
      *                       for displaying in recordlists, "edit" for
      *                       displaying in editscreens, "add" for displaying in
@@ -1975,67 +1814,26 @@ class Attribute
      *
      * @return string HTML String
      */
-    public function display(array $record, string $mode): string
+    public function display($record, $mode)
     {
         // the next if-statement is a workaround for derived attributes which do
         // not override the display() method properly. This will not give them a
         // working display() functionality but at least it will not give error messages.
-        $value = $record[$this->fieldName()] ?? '';
+        $value = isset($record[$this->fieldName()]) ? $record[$this->fieldName()] : null;
 
         if (!is_array($value)) {
             // default behaviour is that we display a value 'as is'.
-            if (in_array($mode, ['csv', 'plain'])) {
+            if (($mode == 'csv') || ($mode == 'plain')) {
                 return $value;
             }
 
             $value = $this->htmlSpecialChars ? htmlSpecialChars($value) : $value;
             $value = $this->nl2br ? nl2br($value) : $value;
+
+            return $value;
         }
 
-        return $value;
-    }
-
-    public function formatDisplay($value, string $mode)
-    {
-        $displayContent = $value;
-
-        if ($mode == 'list') {
-            $style = '';
-            $classes = '';
-            $maxChars = $this->getMaxChars();
-
-            if ($this->getMinWidth() !== null) {
-                $style .= "min-width: {$this->getMinWidth()};";
-            }
-            if ($this->getMaxWidth() !== null) {
-                $style .= "max-width: {$this->getMaxWidth()};";
-            }
-
-            switch ($this->getDisplayMode()) {
-                case self::MODE_INLINE:
-                    if ($maxChars !== null) {
-                        $displayContent = $value != null ? Tools::truncateHTML($value, $maxChars, true) : null;
-                    }
-                    break;
-
-                case self::MODE_SCROLL:
-                    $classes = 'text-wrap'; // text-wrap is always enabled in scroll mode
-                    if ($this->getMaxHeight() !== null) {
-                        $style .= " max-height: {$this->getMaxHeight()}; overflow-y: auto;";
-                    }
-                    break;
-
-                default:
-                    $classes = $this->isTextWrap() ? 'text-wrap' : '';
-                    if ($maxChars !== null) {
-                        $displayContent = $value != null ? Tools::truncateHTML($value, $maxChars, true) : null;
-                    }
-            }
-
-            $displayContent = "<div class='$classes' style='$style'>$displayContent</div>";
-        }
-
-        return $displayContent;
+        return '';
     }
 
     /**
@@ -2094,11 +1892,11 @@ class Attribute
      *                                 an addToQuery method should pass the $level+1.
      * @param string $mode Indicates what kind of query is being processing:
      *                                 This can be any action performed on a node (edit,
-     *                                 add, etc.) Mind you that "add" and "update" are the
+     *                                 add, etc) Mind you that "add" and "update" are the
      *                                 actions that store something in the database,
      *                                 whereas the rest are probably select queries.
      */
-    public function addToQuery($query, $tablename = '', $fieldaliasprefix = '', &$record = [], $level = 0, $mode = '')
+    public function addToQuery($query, $tablename = '', $fieldaliasprefix = '', &$record, $level = 0, $mode = '')
     {
         if ($mode == 'add' || $mode == 'update') {
             if ($mode == 'add' && $this->hasFlag(self::AF_AUTO_INCREMENT)) {
@@ -2266,9 +2064,10 @@ class Attribute
      *
      * @return Attribute Returns the instance of this attribute
      */
-    public function setForceInsert(bool $force): static
+    public function setForceInsert($force)
     {
         $this->m_forceinsert = $force;
+
         return $this;
     }
 
@@ -2277,7 +2076,7 @@ class Attribute
      *
      * @return bool Wether or not an attribute is forced to insert
      */
-    public function getForceInsert(): bool
+    public function getForceInsert()
     {
         return $this->m_forceinsert;
     }
@@ -2290,27 +2089,24 @@ class Attribute
      *
      * @return Attribute Returns the instance of this attribute
      */
-    public function setForceReload(bool $force): static
+    public function setForceReload($force)
     {
         $this->m_forcereload = $force;
-        return $this;
-    }
 
-    public function isForceReload(): bool
-    {
-        return $this->m_forcereload;
+        return $this;
     }
 
     /**
      * Used to force an attribute to update with every updateDb() call.
      *
-     * @param bool $value Wether or not to force the attribute to update
+     * @param bool $force Wether or not to force the attribute to update
      *
      * @return Attribute Returns the instance of this attribute
      */
-    public function setForceUpdate(bool $value): static
+    public function setForceUpdate($force)
     {
-        $this->m_forceupdate = $value;
+        $this->m_forceupdate = $force;
+
         return $this;
     }
 
@@ -2319,20 +2115,9 @@ class Attribute
      *
      * @return bool Wether or not an attribute is forced to update
      */
-    public function getForceUpdate(): bool
+    public function getForceUpdate()
     {
         return $this->m_forceupdate;
-    }
-
-    public function isForceExport(): bool
-    {
-        return $this->forceExport;
-    }
-
-    public function setForceExport(bool $forceExport): static
-    {
-        $this->forceExport = $forceExport;
-        return $this;
     }
 
     /**
@@ -2432,7 +2217,7 @@ class Attribute
      *
      * @return Attribute The instance of this Attribute
      */
-    public function setAttribSize($size): static
+    public function setAttribSize($size)
     {
         if (is_array($size) && Tools::count($size) > 0) {
             if (!empty($size[2])) {
@@ -2531,9 +2316,10 @@ class Attribute
      *
      * @return Attribute The instance of this Attribute
      */
-    public function setLabel(string $label): static
+    public function setLabel($label)
     {
         $this->m_label = $label;
+
         return $this;
     }
 
@@ -2544,9 +2330,10 @@ class Attribute
      *
      * @return Attribute The instance of this Attribute
      */
-    public function setPostFixLabel(string $label): static
+    public function setPostFixLabel($label)
     {
         $this->m_postfixlabel = $label;
+
         return $this;
     }
 
@@ -2556,9 +2343,13 @@ class Attribute
      *
      * @return string HTML compatible help text for this attribute
      */
-    public function getHelp(): string
+    public function getHelp()
     {
-        return $this->m_help !== '' ? $this->text($this->m_help) : '';
+        if ($this->m_help != '') {
+            return $this->text($this->m_help);
+        }
+
+        return '';
     }
 
     /**
@@ -2568,9 +2359,10 @@ class Attribute
      *
      * @return Attribute The instance of this Attribute
      */
-    public function setHelp(string $help): static
+    public function setHelp($help)
     {
         $this->m_help = $help;
+
         return $this;
     }
 
@@ -2595,9 +2387,10 @@ class Attribute
      *
      * @return Attribute The instance of this Attribute
      */
-    public function setPlaceholder(string $placeholder): static
+    public function setPlaceholder($placeholder)
     {
         $this->m_placeholder = $placeholder;
+
         return $this;
     }
 
@@ -2648,17 +2441,6 @@ class Attribute
         }
     }
 
-    public function isLabelPositionTop(): bool
-    {
-        return $this->labelPositionTop;
-    }
-
-    public function setLabelPositionTop(bool $labelPositionTop): static
-    {
-        $this->labelPositionTop = $labelPositionTop;
-        return $this;
-    }
-
     /**
      * Sets the storage type.
      *
@@ -2669,9 +2451,10 @@ class Attribute
      * @see storageType
      *
      */
-    public function setStorageType($type, $mode = null): static
+    public function setStorageType($type, $mode = null)
     {
         $this->m_storageType[$mode] = $type;
+
         return $this;
     }
 
@@ -2732,9 +2515,10 @@ class Attribute
      * @see loadType
      *
      */
-    public function setLoadType($type, $mode = null): static
+    public function setLoadType($type, $mode = null)
     {
         $this->m_loadType[$mode] = $type;
+
         return $this;
     }
 
@@ -3086,7 +2870,7 @@ class Attribute
     /**
      * Translate using the owner instance's module and type.
      *
-     * @param string|string[] $string The string or array of strings to be translated
+     * @param string $string The string to be translated
      * @param bool $fallback
      *
      * @return string The translated string.
@@ -3365,9 +3149,10 @@ class Attribute
      *
      * @return Attribute The instance of this Attribute
      */
-    public function setInitialHidden(bool $bool): static
+    public function setInitialHidden(bool $bool): Attribute
     {
         $this->m_initial_hidden = $bool;
+
         return $this;
     }
 
@@ -3381,6 +3166,7 @@ class Attribute
         return $this->m_initial_hidden;
     }
 
+
     /**
      * String representation for this attribute (PHP5 only).
      *
@@ -3393,13 +3179,17 @@ class Attribute
 
     /**
      * @param $options
-     * @param array|null $types array of types ('edit', 'search'), null for all types.
+     * @param null|string|array $types null for all types, or string with type or array of types ('edit', 'search')
      * @return $this
      */
-    public function setSelect2Options($options, array $types = null): static
+    public function setSelect2Options($options, $types = null)
     {
         if ($types == null) {
             $types = array_keys($this->m_select2Options);
+        }
+
+        if (!is_array($types)) {
+            $types = [$types];
         }
 
         foreach ($types as $type) {
@@ -3414,7 +3204,7 @@ class Attribute
      * @param string $style
      * @param mixed $value
      */
-    public function setCssStyle($type, $style, $value): static
+    public function setCssStyle($type, $style, $value)
     {
         if (is_array($type)) {
             foreach ($type as $t) {
@@ -3423,7 +3213,6 @@ class Attribute
         } else {
             $this->cssStyles[$type][$style] = $value;
         }
-        return $this;
     }
 
     public function getCssStyle($type, $style)
@@ -3449,69 +3238,60 @@ class Attribute
     }
 
     /**
-     * Sets min width using field num_chars * 10
-     *
-     * @param array $record
-     * @param string $type
+     * @return bool
      */
-    protected function setSearchCssStyleMinWidth($record, $type): static
-    {
-        $value = '';
-        if (is_array($record) && isset($record[$this->fieldName()])) {
-            $value = $record[$this->fieldName()];
-        }
-
-        if (is_string($value)) {
-            $numChars = strlen($value);
-            $minWidth = $value ? ($numChars * 10) : 50;
-
-            $this->setCssStyle($type, 'min-width', $minWidth . 'px');
-        }
-
-        return $this;
-    }
-
     public function isHtmlSpecialChars(): bool
     {
         return $this->htmlSpecialChars;
     }
 
-    public function setHtmlSpecialChars(bool $htmlSpecialChars): static
+    /**
+     * @param bool $htmlSpecialChars
+     * @return Attribute
+     */
+    public function setHtmlSpecialChars(bool $htmlSpecialChars): self
     {
         $this->htmlSpecialChars = $htmlSpecialChars;
         return $this;
     }
 
+    /**
+     * @return bool
+     */
     public function isNl2br(): bool
     {
         return $this->nl2br;
     }
 
-    public function setNl2br(bool $nl2br): static
+    /**
+     * @param bool $nl2br
+     * @return Attribute
+     */
+    public function setNl2br(bool $nl2br): self
     {
         $this->nl2br = $nl2br;
         return $this;
     }
 
+    /**
+     * @return bool
+     */
     public function isNestedAttribute(): bool
     {
-        return $this->nestedAttributeField != null;
-    }
-
-    public function getNestedAttributeField(): ?string
-    {
-        return $this->nestedAttributeField;
+        return $this->isNestedAttribute;
     }
 
     /**
-     * @throws Exception
+     * @param bool $isNestedAttribute
+     * @return self
      */
-    public function setNestedAttributeField(string $nestedAttributeField): static
+    public function setIsNestedAttribute(bool $isNestedAttribute): self
     {
-//        if ($nestedAttributeField && !$this->isNestedAttribute) {
-//            throw new Exception("Attribute '{$this->fieldName()}' must be nested!");
-//        }
-        $this->nestedAttributeField = $nestedAttributeField;
+        $this->isNestedAttribute = $isNestedAttribute;
         return $this;
     }
+
+
+
+
 }

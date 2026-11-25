@@ -4,6 +4,7 @@ namespace Sintattica\Atk\DataGrid;
 
 use Sintattica\Atk\Core\Config;
 use Sintattica\Atk\Core\Tools;
+use SmartyException;
 
 /**
  * The data grid paginator. Can be used to render pagination
@@ -141,6 +142,7 @@ class DataGridPaginator extends DataGridComponent
      * Renders the paginator for the given data grid.
      *
      * @return null|string rendered HTML
+     * @throws SmartyException
      */
     public function render(): ?string
     {

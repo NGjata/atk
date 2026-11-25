@@ -17,7 +17,7 @@ use Exception;
 /**
  * Implementation of one-to-many relationships.
  *
- * Can be used to create oneToMany relations ('1 library has N books').
+ * Can be used to create one to many relations ('1 library has N books').
  * A common term for this type of relation is a master-detail relationship.
  * The detailrecords can be edited inline.
  *
@@ -125,8 +125,6 @@ class OneToManyRelation extends Relation
      */
     public $m_excludes = [];
 
-    private $descriptorListSep = '';
-
     /**
      * Default constructor.
      *
@@ -140,7 +138,7 @@ class OneToManyRelation extends Relation
      * @param string $name The unique name of this relation within a node.
      *                            In contrast with most other attributes, the name
      *                            does not correspond to a database field. (Because
-     *                            in oneToMany relations, the databasefield that
+     *                            in one2many relations, the databasefield that
      *                            stores the link, is in the destination node and not
      *                            in the owner node).
      * @param int $flags Attribute flags that influence this attributes' behavior.
@@ -151,21 +149,21 @@ class OneToManyRelation extends Relation
      *                            node. In the case of multi-foreign key
      *                            relationships, $refKey can be an array of fields.
      */
-    public function __construct($name, $flags, $destination, $refKey = '')
+    public function __construct($name, $flags = 0, $destination, $refKey = '')
     {
-        parent::__construct($name, $flags | self::AF_NO_SORT | self::AF_HIDE_ADD, $destination);
+        $flags = $flags | self::AF_NO_SORT | self::AF_HIDE_ADD;
+        parent::__construct($name, $flags, $destination);
 
         if (is_array($refKey)) {
             $this->m_refKey = $refKey;
-        } elseif ($refKey) {
-            $this->m_refKey[] = $refKey;
         } else {
-            $this->m_refKey = [];
+            if (empty($refKey)) {
+                $this->m_refKey = [];
+            } else {
+                $this->m_refKey[] = $refKey;
+            }
         }
-
         $this->setGridExcludes($this->m_refKey);
-
-        $this->setLabelPositionTop(Config::getGlobal('onetomany_label_position_top') === true);
     }
 
     public function addFlag($flag)
@@ -233,22 +231,12 @@ class OneToManyRelation extends Relation
         $this->m_useRefKeyForFilter = $useRefKey;
     }
 
-    public function getDescriptorListSep(): string
-    {
-        return $this->descriptorListSep;
-    }
-    public function setDescriptorListSep(string $descriptorListSep): self
-    {
-        $this->descriptorListSep = $descriptorListSep;
-        return $this;
-    }
-
     /**
      * Create the datagrid for the edit and display actions. The datagrid is
      * configured with the correct node filter, excludes etc.
      *
      * The datagrid uses for both the edit and display actions the partial_grid
-     * method to update its view.
+     * method to update it's view.
      *
      * @param array $record the record
      * @param string $mode the mode
@@ -260,8 +248,6 @@ class OneToManyRelation extends Relation
     protected function createGrid($record, $mode, $action, $useSession = true)
     {
         $this->createDestination();
-
-        $this->m_destInstance->setAttributesFlags(null, $mode);
 
         $grid = DataGrid::create($this->m_destInstance, str_replace('.', '_', $this->getOwnerInstance()->atkNodeUri()) . '_' . $this->fieldName() . '_grid', null,
             true, $useSession);
@@ -333,46 +319,44 @@ class OneToManyRelation extends Relation
     /**
      * Returns a displayable string for this value, to be used in HTML pages.
      *
-     * The OneToManyRelation displays a list of detail records in "view"
+     * The atkOneToManyRelation displays a list of detail records in "view"
      * mode, in the form of a read-only data grid. In "list" mode, a plain
      * list of detail record descriptors is displayed.
      *
-     * @param array<string, mixed> $record The record that holds the value for this attribute
-     * @param string $mode The display mode ("view" for viewpages, or "list" for displaying in record lists)
+     * @param array $record The record that holds the value for this attribute
+     * @param string $mode The display mode ("view" for viewpages, or "list"
+     *                       for displaying in recordlists)
      *
      * @return string HTML String
      */
-    public function display(array $record, string $mode): string
+    public function display($record, $mode)
     {
         // for the view mode we use the datagrid and load the records ourselves
-        if ($mode === 'view' || ($mode === 'edit' && $this->hasFlag(self::AF_READONLY_EDIT))) {
+        if ($mode == 'view' || ($mode == 'edit' && $this->hasFlag(self::AF_READONLY_EDIT))) {
             $grid = $this->createGrid($record, 'admin', 'view');
-
-            if ($selectHandler = $this->selectRecordsMethod()) {
-                $grid->setSelectHandler($selectHandler);
-            }
-
             $grid->loadRecords(); // load records early
 
-            if ($mode === 'view') {
+            if ($mode == 'view') {
                 $grid->setEmbedded(false);
             }
 
             // no records
             if ($grid->getCount() == 0) {
-                return !in_array($mode, ['csv', 'plain']) ? $this->text('none') : '';
+                if (!in_array($mode, array('csv', 'plain'))) {
+                    return $this->text('none');
+                } else {
+                    return '';
+                }
             }
 
             $actions = [];
             if (!$this->m_destInstance->hasFlag(Node::NF_NO_VIEW)) {
-                $actions['view'] = Tools::dispatch_url($this->m_destination, 'view', [Node::PARAM_ATKSELECTOR => '[pk]', 'atkfilter' => $this->m_destinationFilter]);
+                $actions['view'] = Tools::dispatch_url($this->m_destination, 'view', ['atkselector' => '[pk]', 'atkfilter' => $this->m_destinationFilter]);
             }
 
             $grid->setDefaultActions($actions);
 
-            $exportBtn = $this->getDestination()->hasFlag(Node::NF_EXPORT) ? $this->getExportButton($record) : '';
-
-            return $exportBtn . ' ' . $grid->render();
+            return $grid->render();
         }
 
         // records should be loaded inside the load method
@@ -383,61 +367,24 @@ class OneToManyRelation extends Relation
             return !in_array($mode, ['csv', 'plain', 'list']) ? $this->text('none') : '';
         }
 
-        $result = '';
-
-        if ($mode === 'list') {
-            if ($this->getDisplayListMode() === parent::MODE_LIST_UL) {
-                $result .= '<ul style="padding-left: 1rem;">';
-            } else {
-                $result .= '<div style="max-width: 600px; white-space: normal;">';
+        if ($mode == 'list') { // list mode
+            $result = '<div style="max-width: 600px; min-width: 400px; white-space: normal;">'; //.$this->getCSSClassAttribute(['ml-2']) . '>';
+            foreach ($records as $current) {
+                $result .= sprintf('<span class="badge-sm badge-pill d-inline-block badge-secondary m-1 text-nowrap">%s</span>', $this->m_destInstance->descriptor($current));
             }
 
-            $recordCounter = 0;
+            $result .= '</div>';
 
-            foreach ($records as $currentRecord) {
-                $descriptor = $this->m_destInstance->descriptor($currentRecord);
-                if ($this->hasFlag(ManyToOneRelation::AF_RELATION_AUTOLINK)) {
-                    $descriptor = Tools::actionHref($this->m_destInstance->atkNodeUri(), 'view', [Node::PARAM_ATKSELECTOR => $currentRecord['atkprimkey']], $descriptor, '', SessionManager::SESSION_NESTED);
-                }
+            return $result;
+        } else { // cvs / plain mode
+            $result = '';
 
-                if ($this->getDisplayListMode() === parent::MODE_LIST_UL) {
-                    $result .= "<li>$descriptor</li>";
-
-                } else {
-                    $format = '<span class="badge-sm badge-pill d-inline-block badge-secondary m-1 text-nowrap">%s</span>';
-
-                    if (!empty($this->descriptorListSep)) {
-                        // divides each record in N parts using the descriptorListSep
-                        $descriptorItems = explode($this->descriptorListSep, $descriptor);
-                        foreach ($descriptorItems as $item) {
-                            $result .= sprintf($format, $item);
-                        }
-
-                        if ($recordCounter !== (count($records) - 1)) {
-                            $result .= '<hr>';
-                        }
-
-                    } else {
-                        $result .= sprintf($format, $descriptor);
-                    }
-                }
-
-                $recordCounter++;
-            }
-
-            if ($this->getDisplayListMode() === parent::MODE_LIST_UL) {
-                $result .= '</ul>';
-            } else {
-                $result .= '</div>';
-            }
-
-        } else { // csv / plain mode
             foreach ($records as $i => $current) {
                 $result .= ($i > 0 ? ', ' : '') . $this->m_destInstance->descriptor($current);
             }
-        }
 
-        return $result;
+            return $result;
+        }
     }
 
     public function edit($record, $fieldprefix, $mode)
@@ -472,10 +419,6 @@ class OneToManyRelation extends Relation
         $actions = $this->m_destInstance->defaultActions('relation', $params);
         $grid->setDefaultActions($actions);
 
-        if ($selectHandler = $this->selectRecordsMethod()) {
-            $grid->setSelectHandler($selectHandler);
-        }
-
         $grid->loadRecords(); // force early load of records
 
         if ($mode === 'edit') {
@@ -490,10 +433,6 @@ class OneToManyRelation extends Relation
 
         if ($this->m_destInstance->allowed('add')) {
             $this->_addAddToEditOutput($output, $grid->getRecords(), $record, $mode, $fieldprefix);
-        }
-
-        if ($mode == 'edit' && $this->getDestination()->hasFlag(Node::NF_EXPORT)) {
-            $output = $this->getExportButton($record) . ' ' . $output;
         }
 
         return $output;
@@ -567,11 +506,6 @@ class OneToManyRelation extends Relation
             $params['atkstore_key'] = $this->getSessionStoreKey();
         }
 
-        $method = $this->fieldName() . '_getNestedAddLink';
-        if (method_exists($this->getOwnerInstance(), $method)) {
-            return $this->getOwnerInstance()->$method($myrecords, $record, $saveform, $fieldprefix);
-        }
-
         return $this->_getNestedAddLink($myrecords, $record, $saveform, $fieldprefix, $params);
     }
 
@@ -609,7 +543,6 @@ class OneToManyRelation extends Relation
      * @param array $record
      *
      * @return string filter string
-     * @throws Exception
      */
     public function getAddFilterString($record)
     {
@@ -632,7 +565,6 @@ class OneToManyRelation extends Relation
      * @param array $params
      *
      * @return string The link to add records to the onetomany
-     * @throws Exception
      */
     public function _getNestedAddLink($myrecords, $record, $saveform = true, $fieldprefix = '', $params = [])
     {
@@ -670,7 +602,6 @@ class OneToManyRelation extends Relation
      * @param array $record
      *
      * @return array Array with filter elements
-     * @throws Exception
      */
     public function _getFilterElements($record)
     {
@@ -717,14 +648,14 @@ class OneToManyRelation extends Relation
     {
         $prefix = '';
         if (strpos($columnName, '.') === false) {
-            $prefix = $destAlias ?: ($this->m_destInstance->getTable());
+            $prefix = $destAlias ? $destAlias : ($this->m_destInstance->getTable());
             $prefix .= '.';
         }
 
         return $prefix . $columnName;
     }
 
-    protected function getAddURL($params = []): string
+    protected function getAddURL($params = array())
     {
         return Tools::dispatch_url($this->m_destination, 'add', $params);
     }
@@ -982,7 +913,6 @@ class OneToManyRelation extends Relation
      * @param string $mode Mode ('copy')
      *
      * @return bool
-     * @throws Exception
      */
     private function storeCopy($db, $record, $mode)
     {
@@ -999,7 +929,7 @@ class OneToManyRelation extends Relation
         for ($i = 0; $i < Tools::count($onetomanyrecs); ++$i) {
             // original record
             $original = $onetomanyrecs[$i];
-            $onetomanyrecs[$i][Node::ATK_ORG_REC] = $original;
+            $onetomanyrecs[$i]['atkorgrec'] = $original;
 
             // the referential key of the onetomanyrecs could be wrong, if we
             // are called for example from a copy function. So just in case,
@@ -1094,7 +1024,7 @@ class OneToManyRelation extends Relation
      * @param array $path The remaining attribute path.
      * @param Query $query The query to which the condition will be added.
      * @param string $ownerAlias The owner table alias to use.
-     * @param mixed $value The value the user has entered the searchbox.
+     * @param mixed $value The value the user has entered in the searchbox.
      * @param string $mode The searchmode to use.
      */
     public function smartSearchCondition($id, $nr, $path, $query, $ownerAlias, $value, $mode)
@@ -1107,7 +1037,7 @@ class OneToManyRelation extends Relation
 
             $destAlias = "ss_{$id}_{$nr}_" . $this->fieldName();
 
-            $query->addJoin($this->m_destInstance->m_table, $destAlias, $this->getJoinCondition($query, $ownerAlias, $destAlias));
+            $query->addJoin($this->m_destInstance->m_table, $destAlias, $this->getJoinCondition($query, $ownerAlias, $destAlias), false);
 
             $attrName = array_shift($path);
             $attr = $this->m_destInstance->getAttribute($attrName);
@@ -1126,7 +1056,7 @@ class OneToManyRelation extends Relation
      * @param Query $query The query to which the condition will be added.
      * @param string $table The name of the table in which this attribute
      *                                 is stored
-     * @param mixed $value The value the user has entered the searchbox
+     * @param mixed $value The value the user has entered in the searchbox
      * @param string $searchmode The searchmode to use. This can be any one
      *                                 of the supported modes, as returned by this
      *                                 attribute's getSearchModes() method.
@@ -1141,10 +1071,10 @@ class OneToManyRelation extends Relation
                 $query->addSearchCondition($searchcondition);
                 $query->setDistinct(true);
 
-                // TODO: is this still needed?
-                if ($this->m_ownerInstance->m_postvars[Node::PARAM_ATKSELECTOR]) {
+                // @todo: is this still needed?
+                if ($this->m_ownerInstance->m_postvars['atkselector']) {
                     $query->addTable($this->m_destInstance->m_table);
-                    $query->addCondition($this->translateSelector($this->m_ownerInstance->m_postvars[Node::PARAM_ATKSELECTOR]));
+                    $query->addCondition($this->translateSelector($this->m_ownerInstance->m_postvars['atkselector']));
                 }
             }
         }
@@ -1218,7 +1148,7 @@ class OneToManyRelation extends Relation
             $alias = $this->fieldName() . '_AE_' . $this->m_destInstance->m_table;
             $attr = $this->m_destInstance->getAttribute($field);
 
-            $query->addJoin($table, $alias, $this->getJoinCondition($query, $reftable, $alias));
+            $query->addJoin($table, $alias, $this->getJoinCondition($query, $reftable, $alias), false);
 
             return $attr->getSearchCondition($query, $alias, $value, $searchmode);
         }
@@ -1264,7 +1194,7 @@ class OneToManyRelation extends Relation
             $atk = Atk::getInstance();
             $rel = $atk->atkGetNode($classname, $cache_id);
             // Get the current atkselector
-            $where = $this->translateSelector($this->m_ownerInstance->m_postvars[Node::PARAM_ATKSELECTOR]);
+            $where = $this->translateSelector($this->m_ownerInstance->m_postvars['atkselector']);
             if ($where) {
                 $childrecords = $rel->select($where)->getAllRows();
                 if (!empty($childrecords)) {
@@ -1281,12 +1211,11 @@ class OneToManyRelation extends Relation
     /**
      * Here we check if the selector is on the owner or on the destination
      * if it's on the destination, we leave it alone.
-     * Otherwise, we translate it back to the destination.
+     * Otherwise we translate it back to the destination.
      *
      * @param string $selector the selector we have to translate
      *
      * @return string the new selector
-     * @throws Exception
      * @todo when we translate the selector, we get the last used refKey
      *       but how do we know what is the right one?
      *
@@ -1294,7 +1223,7 @@ class OneToManyRelation extends Relation
     public function translateSelector($selector)
     {
         // All standard SQL operators
-        $sqloperators = [
+        $sqloperators = array(
             '=',
             '<>',
             '>',
@@ -1304,7 +1233,7 @@ class OneToManyRelation extends Relation
             'BETWEEN',
             'LIKE',
             'IN',
-        ];
+        );
         $this->createDestination();
 
         // Check the filter for every SQL operators
@@ -1356,7 +1285,7 @@ class OneToManyRelation extends Relation
     }
 
     /**
-     * Set the excluded fields for the grid.
+     * Set the exclude fields for the grid.
      *
      * @param array $excludes
      */
@@ -1366,29 +1295,12 @@ class OneToManyRelation extends Relation
     }
 
     /**
-     * Get the excluded fields for the grid.
+     * Get the exclude fields for the grid.
      *
      * @return array with exclude fields
      */
     public function getGridExcludes()
     {
         return $this->m_excludes;
-    }
-
-    protected function selectRecordsMethod(): ?callable
-    {
-        return null;
-    }
-
-    function getExportButton(array $record): string
-    {
-        $params = [];
-        $filter = $this->getAddFilterString($record);
-        if (isset($filter)) {
-            $params['atkfilter'] = $filter;
-        }
-        // open export action in target _blank because in SESSION_NESTED export failed...
-        $url = Tools::dispatch_url($this->getDestination()->atkNodeUri(), 'export', $params);
-        return sprintf('<a href="%s" target="_blank" class="btn btn-sm btn-default mb-1">%s</a>', $url, $this->text('export'));
     }
 }

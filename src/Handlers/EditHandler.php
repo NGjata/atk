@@ -2,7 +2,6 @@
 
 namespace Sintattica\Atk\Handlers;
 
-use Sintattica\Atk\Attributes\Attribute;
 use Sintattica\Atk\Core\Tools;
 use Sintattica\Atk\Core\Config;
 use Sintattica\Atk\Utils\Json;
@@ -230,11 +229,13 @@ class EditHandler extends ViewEditBase
         if (is_object($ui)) {
             $this->getPage()->setTitle(Tools::atktext('app_shorttitle').' - '.$node->actionTitle('edit', $record));
 
-            $output = $ui->renderAction('edit', $params, $node->m_module);
+            $output = $ui->render('action.tpl', $params, $node->m_module);
             $this->addRenderBoxVar('title', $node->actionTitle('edit', $record));
             $this->addRenderBoxVar('content', $output);
 
-            return $ui->renderBox($this->m_renderBoxVars, $this->m_boxTemplate);
+            $total = $ui->renderBox($this->m_renderBoxVars, $this->m_boxTemplate);
+
+            return $total;
         }
 
         return '';
@@ -323,9 +324,6 @@ class EditHandler extends ViewEditBase
     {
         $field = &$fields[$index];
 
-        /** @var Attribute $attribute */
-        $attribute = $field['attribute'];
-
         // visible sections, both the active sections and the tab names (attribute that are
         // part of the anonymous section of the tab)
         $visibleSections = array_merge($this->m_node->getActiveSections($tab, $mode), $this->m_node->getTabs($mode));
@@ -370,32 +368,23 @@ class EditHandler extends ViewEditBase
 
         // ar_ stands for 'attribrow'.
         $tplfield['rowid'] = 'ar_'.(!empty($field['id']) ? $field['id'] : Tools::getUniqueId('anonymousattribrows')); // The id of the containing row
-
         // check for separator
         if (isset($field['html']) && $field['html'] == '-' && $index > 0 && $fields[$index - 1]['html'] != '-') {
             $tplfield['type'] = 'line';
             $tplfield['line'] = '<hr>';
-
-        } elseif (isset($field['html']) && $field['html'] == '-') {
-            /* double separator, ignore */
-
-        } elseif (isset($field['html']) && $field['html'] == 'section') {
-            /* sections */
+        } /* double separator, ignore */ elseif (isset($field['html']) && $field['html'] == '-') {
+        } /* sections */ elseif (isset($field['html']) && $field['html'] == 'section') {
             $tplfield['type'] = 'section';
             list($tab, $section) = explode('.', $field['name']);
-            $tplfield['section_name'] = "section_{$tab}_$section";
+            $tplfield['section_name'] = "section_{$tab}_{$section}";
             $tplfield['line'] = $this->getSectionControl($field, $mode);
-
-        } elseif (isset($field['line'])) {
-            /* only full HTML */
+        } /* only full HTML */ elseif (isset($field['line'])) {
             $tplfield['type'] = 'custom';
             $tplfield['line'] = $field['line'];
-
-        }  else {
-            /* edit field */
+        } /* edit field */ else {
             $tplfield['type'] = 'attribute';
 
-            if ($attribute->m_ownerInstance->getNumbering()) {
+            if ($field['attribute']->m_ownerInstance->getNumbering()) {
                 $this->_addNumbering($field, $tplfield, $index);
             }
 
@@ -419,8 +408,8 @@ class EditHandler extends ViewEditBase
             }
 
             // Make the attribute and node names available in the template.
-            $tplfield['attribute'] = $attribute->fieldName();
-            $tplfield['node'] = $attribute->m_ownerInstance->atkNodeUri();
+            $tplfield['attribute'] = $field['attribute']->fieldName();
+            $tplfield['node'] = $field['attribute']->m_ownerInstance->atkNodeUri();
 
             /* html source */
             $tplfield['widget'] = $field['html'];
@@ -431,14 +420,12 @@ class EditHandler extends ViewEditBase
 
             $tplfield['full'] = $editsrc;
 
-            $column = $attribute->getColumn();
+            $column = $field['attribute']->getColumn();
             $tplfield['column'] = $column;
 
-            $tplfield['readonly'] = $attribute->isReadonlyEdit($mode);
+            $tplfield['readonly'] = $field['attribute']->isReadonlyEdit($mode);
 
-            $tplfield['help'] = $attribute->getHelp();
-
-            $tplfield['labeltop'] = $attribute->isLabelPositionTop();
+            $tplfield['help'] = $field['attribute']->getHelp();
         }
 
         // allow passing of extra arbitrary data, for example if a user overloads the editArray method
@@ -523,13 +510,13 @@ class EditHandler extends ViewEditBase
                     }
 
                     /* Error messages should be rendered in templates using message, label and the link to the tab. */
-                    $err = ['message' => $error['msg'], 'tablink' => $tabLink, 'label' => $label];
+                    $err = array('message' => $error['msg'], 'tablink' => $tabLink, 'label' => $label);
 
                     /*
                      * @deprecated: For backwards compatibility, we still support the msg variable as well.
                      * Although the message, tablink variables should be used instead of msg and tab.
                      */
-                    $err = array_merge($err, ['msg' => $error['msg'].$error_tab]);
+                    $err = array_merge($err, array('msg' => $error['msg'].$error_tab));
 
                     $errors[] = $err;
                 }
@@ -543,10 +530,7 @@ class EditHandler extends ViewEditBase
                         $pk_err_msg .= ', ';
                     }
                 }
-                $errors[] = [
-                    'label' => Tools::atktext('error_primarykey_exists'),
-                    'message' => $pk_err_msg
-                ];
+                $errors[] = array('label' => Tools::atktext('error_primarykey_exists'), 'message' => $pk_err_msg);
             }
         }
 
@@ -559,13 +543,10 @@ class EditHandler extends ViewEditBase
             $field = &$data['fields'][$i];
             $tplfield = $this->createTplField($data['fields'], $i, $mode, $tab);
             $fields[] = $tplfield; // make field available in numeric array
-            if (isset($field['name'])) {
-                // make field available in associative array
-                $params[$field['name']] = $tplfield;
-                $attributes[$field['name']] = $tplfield;
-            }
+            $params[isset($field['name'])?$field['name']:null] = $tplfield; // make field available in associative array
+            $attributes[isset($field['name'])?$field['name']:null] = $tplfield; // make field available in associative array
 
-            if (isset($field['error'])) {
+            if (!empty($field['error'])) {
                 $errorFields[] = $field['id'];
             }
         }
@@ -574,10 +555,14 @@ class EditHandler extends ViewEditBase
         $page = $this->getPage();
         $page->register_script(Config::getGlobal('assets_url').'javascript/formsubmit.js');
 
-        // register fields that contain errors values
+        // register fields that contain errornous values
         $page->register_scriptcode('var atkErrorFields = '.Json::encode($errorFields).';');
 
-        $result = implode('', $data['hide']);
+        $result = '';
+
+        foreach ($data['hide'] as $hidden) {
+            $result .= $hidden;
+        }
 
         $params['activeTab'] = $tab;
         $params['fields'] = $fields; // add all fields as a numeric array.

@@ -24,7 +24,7 @@ class FieldSet extends Attribute
      * @param int $flags flags
      * @param string $template template string
      */
-    public function __construct($name, $flags, $template)
+    public function __construct($name, $flags = 0, $template)
     {
         $flags = $flags | self::AF_NO_SORT | self::AF_HIDE_SEARCH;
         parent::__construct($name, $flags);
@@ -128,17 +128,15 @@ class FieldSet extends Attribute
      */
     protected function renderFieldSet($type, $record, $mode, $fieldprefix = '')
     {
+
         $replacements = [];
 
         $fields = array_unique($this->getParser()->getFields());
-        $lastElName = end($fields);
-        $counterFields = 0;
-        $numFields = count($fields);
 
+        $lastElName = end($fields);
         foreach ($fields as $attrName) {
             $attr = $this->getOwnerInstance()->getAttribute($attrName);
             $field = '';
-            $counterFields++;
 
             // render the field
             if ($type == 'edit') {
@@ -181,15 +179,10 @@ class FieldSet extends Attribute
                 }
 
                 $html = '<div class="fieldset-form-group d-flex align-items-center' . $requiredClass . '" style="' . implode(' ', $style) . '">';
-                $classes = 'fieldset-form-group-field w-100';
-                if ($counterFields < $numFields) {
-                    $classes .= ' pr-3';
-                }
-                $html .= $label . '<div id="' . $containerId . '" class="' . $classes . '">' . $field . '</div>';
+                $html .= $label . '<div id="' . $containerId . '" class="fieldset-form-group-field w-100 pr-3">' . $field . '</div>';
                 $html .= '</div>';
 
                 $replacements[$attrName] = $html;
-
             } else {
                 $replacements[$attrName] = '';
             }
@@ -200,7 +193,7 @@ class FieldSet extends Attribute
             $style .= "$k:$v;";
         }
 
-        $result = '<div class="atkfieldset d-flex flex-wrap align-items-center"';
+        $result = '<div class="atkfieldset d-flex align-items-center"';
         if ($style != '') {
             $result .= ' style="' . $style . '"';
         }
@@ -228,12 +221,12 @@ class FieldSet extends Attribute
     /**
      * Display fieldset.
      *
-     * @param array<string, mixed> $record
+     * @param array $record
      * @param string $mode
      *
      * @return string
      */
-    public function display(array $record, string $mode): string
+    public function display($record, $mode)
     {
         return $this->renderFieldSet('display', $record, $mode);
     }
@@ -266,4 +259,6 @@ class FieldSet extends Attribute
         $this->growLastElement = $growLastElement;
         return $this;
     }
+
+
 }

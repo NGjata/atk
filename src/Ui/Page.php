@@ -2,10 +2,9 @@
 
 namespace Sintattica\Atk\Ui;
 
-use Sintattica\Atk\Core\Language;
 use Sintattica\Atk\Core\Tools;
 use Sintattica\Atk\Core\Config;
-use Smarty\Exception;
+use Sintattica\Atk\Core\Atk;
 
 /**
  * Page renderer.
@@ -113,6 +112,8 @@ class Page
 
     /**
      * Retrieve the one-and-only Page instance.
+     *
+     * @return Page
      */
     public static function getInstance(): ?Page
     {
@@ -132,11 +133,11 @@ class Page
     {
         // register default scripts
         $assetsUrl = Config::getGlobal('assets_url');
-        $lang = Language::getUserLanguage();
+        $lang = Config::getGlobal('language');
 
         $this->m_fullscreen = isset($_GET['atkfullscreen']) && $_GET['atkfullscreen'] === 'true';
 
-        // jQuery
+        //jQuery
         $this->register_script($assetsUrl . 'admin-lte/plugins/jquery/jquery.min.js');
 
         // Bootstrap 4
@@ -144,84 +145,80 @@ class Page
 
         // Select2
         $this->register_script($assetsUrl . 'admin-lte/plugins/select2/js/select2.full.min.js');
+
         if ($lang) {
             $this->register_script($assetsUrl . 'admin-lte/plugins/select2/js/i18n/' . $lang . '.js');
         }
 
-        // Bootstrap DatePicker
+        //Bootstrap DatePicker
         $this->register_script($assetsUrl . 'admin-lte/plugins/moment/moment.min.js');
         $this->register_script($assetsUrl . 'admin-lte/plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js');
 
         $this->register_script($assetsUrl . 'admin-lte/plugins/bootstrap-switch/js/bootstrap-switch.min.js');
 
-        // Custom file input lib
+        //Custom file input lib
         $this->register_script($assetsUrl . 'admin-lte/plugins/bs-custom-file-input/bs-custom-file-input.min.js');
-
-        $this->register_script($assetsUrl . 'admin-lte/plugins/inputmask/jquery.inputmask.min.js');
 
         /*
         $this->register_script($assetsUrl.'admin-lte/plugins/bootstrap4-duallistbox/jquery.bootstrap-duallistbox.min.js');
+        $this->register_script($assetsUrl.'admin-lte/plugins/inputmask/jquery.inputmask.min.js');
         $this->register_script($assetsUrl.'admin-lte/plugins/daterangepicker/daterangepicker.js');
         $this->register_script($assetsUrl.'admin-lte/plugins/bootstrap-colorpicker/js/bootstrap-colorpicker.min.js');
         $this->register_script($assetsUrl.'admin-lte/plugins/bs-stepper/js/bs-stepper.min.js');
         $this->register_script($assetsUrl.'admin-lte/plugins/dropzone/min/dropzone.min.js');
         */
 
-        // Fixed Scrollbar
+        //Fixed Scrollbar
         $this->register_script($assetsUrl . 'admin-lte/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js');
 
-        // Atk - Custom
+        //Atk - Custom
         $this->register_scriptcode("var LANGUAGE='" . $lang . "';", true);
+        //$this->register_script($assetsUrl.'javascript/libs.min.js'); //disabled old jQuery Bundle
 
-        // AdminLTE App
+        //AdminLTE App
         $this->register_script($assetsUrl . 'admin-lte/js/adminlte.min.js');
 
 
-        // Load these scripts as last.
-        // There are parts that overwrite behaviours of the AdminLTE framework.
+        //Load these scripts as last.
+        //There are parts that overwrite behaviours of the AdminLTE framework.
         $this->register_script($assetsUrl . 'javascript/tools.js');
         $this->register_script($assetsUrl . 'javascript/atk.js');
+
 
         /**
          * Global Styles
          */
 
-        // Font Awesome
+        //Google Font: Source Sans Pro
+        $this->register_style("https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback");
+
+        //Font Awesome
         $this->register_style($assetsUrl . 'admin-lte/plugins/fontawesome-free/css/all.min.css');
 
         $this->register_style($assetsUrl . 'admin-lte/plugins/overlayScrollbars/css/OverlayScrollbars.min.css');
 
-        // ICheck
+        //ICheck
         $this->register_style($assetsUrl . 'admin-lte/plugins/icheck-bootstrap/icheck-bootstrap.min.css');
 
 
-        // Toastr
+        //Toastr
         $this->register_style($assetsUrl . 'admin-lte/plugins/toastr/toastr.min.css');
 
-        // Select2
+        //Select2
         $this->register_style($assetsUrl . 'admin-lte/plugins/select2/css/select2.min.css');
         $this->register_style($assetsUrl . 'admin-lte/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css');
 
         $this->register_style($assetsUrl . 'admin-lte/plugins/tempusdominus-bootstrap-4/css/tempusdominus-bootstrap-4.min.css');
 
+
         // Theme style
         $this->register_style($assetsUrl . 'admin-lte/css/adminlte.min.css');
 
-        // Override default with custom styles
+        //Override default with custom styles
         $this->register_style($assetsUrl . 'admin-lte/css/style.css');
 
         if ($this->m_fullscreen) {
             $this->register_style($assetsUrl . 'admin-lte/css/fullscreen.css');
-        }
-
-
-        // Google Font: Source Sans 3
-        //$this->register_style("$assetsUrl . 'admin-lte/css/sans-font.css");
-
-
-        $customFont = Config::getGlobal('custom_font');
-        if ($customFont != "") {
-            $this->register_style($assetsUrl . 'admin-lte/css/' . $customFont . '-font.css');
         }
 
         /*
@@ -230,17 +227,12 @@ class Page
         $this->register_style($assetsUrl.'admin-lte/plugins/bootstrap4-duallistbox/bootstrap-duallistbox.min.css');
         $this->register_style($assetsUrl.'admin-lte/plugins/bs-stepper/css/bs-stepper.min.css');
         $this->register_style($assetsUrl.'admin-lte/plugins/dropzone/min/dropzone.min.css');
-        */
+*/
+
 
         $style_url = Config::getGlobal('style_url');
-        if (!empty($style_url)) {
-             $this->register_style($style_url);
-        }
-
-        $hideSidebar = Config::getGlobal('menu_hide_sidebar');
-        if ($hideSidebar === true) {
-            // loads css to handle hidden sidebar
-            $this->register_style($assetsUrl . 'admin-lte/css/hide-sidebar.css');
+        if ($style_url) {
+            // $this->register_style(Config::getGlobal('style_url'));
         }
     }
 
@@ -444,7 +436,7 @@ class Page
      * @param string $code The Cascading Style Sheet code fragment to place in
      *                     the header.
      */
-    public function register_stylecode(string $code): void
+    public function register_stylecode($code)
     {
         if (!in_array($code, $this->m_stylecode)) {
             $this->m_stylecode[] = $code;
@@ -468,7 +460,7 @@ class Page
      *
      * @param array $hiddenvars the hiddenvariables we want to register
      */
-    public function register_hiddenvars(array $hiddenvars): void
+    public function register_hiddenvars($hiddenvars)
     {
         foreach ($hiddenvars as $hiddenvarname => $hiddenvarvalue) {
             $this->m_hiddenvars[$hiddenvarname] = $hiddenvarvalue;
@@ -476,29 +468,25 @@ class Page
     }
 
     /**
-     * Generate the HTML header (content of <head></head>) statement for the page, including all scripts and styles.
+     * Generate the HTML header (<head></head>) statement for the page,
+     * including all scripts and styles.
+     *
+     * @return string The HTML pageheader, including <head> and </head> tags.
      */
-    public function head(): string
+    public function head()
     {
-        $header = '';
-        $this->addMeta($header);
-        $this->addScripts($header);
-        $this->addStyles($header);
+        $res = '';
+        $this->addMeta($res);
+        $this->addScripts($res);
+        $this->addStyles($res);
 
-        $faviconBaseUrl = Config::getGlobal('favicon_base_url');
-        if ($faviconBaseUrl !== '') {
-            $header .= '<link rel="icon" type="image/x-icon" href="' . $faviconBaseUrl . 'favicon.ico"/>' . "\n";
-            $header .= '<link rel="shortcut icon" type="image/x-icon" href="' . $faviconBaseUrl . 'favicon.ico"/>' . "\n";
-            $header .= '<link rel="icon" type="image/png" sizes="48x48" href="' . $faviconBaseUrl . 'favicon-48x48.png"/>' . "\n";
-            $header .= '<link rel="apple-touch-icon" sizes="180x180" href="' . $faviconBaseUrl . 'apple-touch-icon.png"/>' . "\n";
+        $favico = Config::getGlobal('defaultfavico');
+        if ($favico != '') {
+            $res .= '  <link rel="icon" href="' . $favico . '" type="image/x-icon" />' . "\n";
+            $res .= '  <link rel="shortcut icon" href="' . $favico . '" type="image/x-icon" />' . "\n";
         }
 
-        $manifestUrl = Config::getGlobal('manifest_url');
-        if ($manifestUrl !== '') {
-            $header .= '<link rel="manifest" href="' . $manifestUrl . '">' . "\n";
-        }
-
-        return $header;
+        return $res;
     }
 
     /**
@@ -715,25 +703,26 @@ class Page
      * @param string $extra_header HTML code of extra headers to add to the head section
      * @param string|null $appendClasses
      * @return string The HTML page, including <html> and </html> tags.
-     * @throws Exception
+     * @throws \SmartyException
      */
-    public function render($title = null, $flags = self::HTML_STRICT, $extrabodyprops = '', $extra_header = '', string|null $appendClasses = null): string
+    public function render($title = null, $flags = self::HTML_STRICT, $extrabodyprops = '', $extra_header = '', string $appendClasses = null): string
     {
+
         if ($title == null) {
             $title = $this->m_title != '' ? $this->m_title : Tools::atktext('app_title');
         }
 
         $ui = Ui::getInstance();
 
-        if ($flags === true) {
+        if (is_bool($flags) && $flags == true) {
             $flags = self::HTML_STRICT;
-        } elseif ($flags === false) {
+        } elseif (is_bool($flags) && $flags == false) {
             $flags = self::HTML_HEADER | self::HTML_DOCTYPE;
         } elseif (Tools::hasFlag($flags, self::HTML_PARTIAL)) {
             return $this->renderPartial();
         }
 
-        $this->m_content = $ui->render('page.tpl', ['content' => $this->m_content]);
+        $this->m_content = $ui->render('page.tpl', array('content' => $this->m_content));
 
         $layout = [];
         $layout['title'] = $title;
@@ -747,6 +736,8 @@ class Page
         }
 
         $layout['hiddenvars'] = $this->hiddenVars();
+        $layout['atkversion'] = Atk::VERSION;
+
 
         return $ui->render('layout.tpl', $layout);
     }
@@ -837,4 +828,6 @@ class Page
         $this->m_fullscreen = $fullscreenMode;
         return $this;
     }
+
+
 }

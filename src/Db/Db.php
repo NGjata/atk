@@ -582,7 +582,7 @@ class Db
      *
      * @return int status
      */
-    public function doConnect($host, $user, $password, $database, $port, $charset): int
+    public function doConnect($host, $user, $password, $database, $port, $charset)
     {
         return self::DB_SUCCESS;
     }
@@ -748,11 +748,10 @@ class Db
      */
     public function nextid($sequence)
     {
-        return 0;
     }
 
     /**
-     * Return the metadata of a certain table HIE GEBLEVEN.
+     * Return the meta data of a certain table HIE GEBLEVEN.
      *
      * depending on $full, metadata returns the following values:
      *  -full is false (default):

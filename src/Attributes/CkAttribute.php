@@ -8,26 +8,10 @@ use Sintattica\Atk\Core\Tools;
 
 /**
  * Attribute wrapper for CKEditor (the successor of FCK Editor)
- * See https://ckeditor.com
- *
- * ckeditor v5
- *
- * Plugins:
- * Autoformat, BlockQuote, Bold, CloudServices, Code, CodeBlock, Essentials, FontBackgroundColor,
- * FontColor, FontFamily, FontSize, GeneralHtmlSupport, Heading, HorizontalLine, HtmlEmbed, Image,
- * ImageCaption, ImageInsert, ImageResize, ImageStyle, ImageToolbar, ImageUpload, Indent, Italic, Link, List,
- * MediaEmbed, Paragraph, PasteFromOffice, RemoveFormat, SourceEditing, SpecialCharacters, SpecialCharactersArrows,
- * SpecialCharactersCurrency, SpecialCharactersEssentials, SpecialCharactersLatin, SpecialCharactersText, Style,
- * Subscript, Table, TableCaption, TableCellProperties, TableColumnResize, TableProperties, TableToolbar,
- * TextTransformation, Underline, WordCount
+ * See http://ckeditor.com.
  */
 class CkAttribute extends HtmlAttribute
 {
-    const ENTER_MODE_P = 1;     // new <p> paragraphs are created
-    const ENTER_MODE_BR = 2;    // replaces all <p> tags with <br><br>
-    const ENTER_MODE_DIV = 3;   // replaces all <p> tags with <div>
-
-    private $enterMode = self::ENTER_MODE_P;
 
     /**
      * @var array CKEditor configuration (default)
@@ -43,7 +27,7 @@ class CkAttribute extends HtmlAttribute
                 'link', 'insertTable', 'imageInsert', 'mediaEmbed', '|',
                 'undo', 'redo', '|',
                 'htmlEmbed', 'code', 'codeBlock', '|',
-                'specialCharacters', 'sourceEditing', 'generalHtmlSupport'
+                'specialCharacters',
             ],
             'image' => [
                 'toolbar' => ['imageTextAlternative', 'imageStyle:full', 'imageStyle:side']
@@ -52,12 +36,7 @@ class CkAttribute extends HtmlAttribute
                 'contentToolbar' => ['tableColumn', 'tableRow', 'mergeTableCells', 'tableCellProperties', 'tableProperties']
             ],
         ],
-        'htmlSupport' => [ // useful to insert classes and styles in html tags 
-            'allow' => [
-                ["name" => "table", "styles" => true, "classes" => true]
-            ]
-        ],
-        'height' => '200px',
+        'height' => '200px'
     ];
 
     /**
@@ -75,9 +54,6 @@ class CkAttribute extends HtmlAttribute
 
         $this->setNl2br(false);
         $this->setHtmlSpecialChars(false);
-
-        // scroll mode by default
-        $this->setDisplayMode(self::MODE_SCROLL);
 
         parent::__construct($name, $flags);
     }
@@ -105,6 +81,7 @@ class CkAttribute extends HtmlAttribute
         return parent::edit($record, $fieldprefix, $mode);
     }
 
+
     /**
      * Check if a record has an empty value for this attribute.
      *
@@ -122,17 +99,15 @@ class CkAttribute extends HtmlAttribute
         return parent::isEmpty($record);
     }
 
+
     /**
      * Set the ckEditor height
      * Ex: 200px or 10rem ...
-     *
      * @param string $height
-     * @return CkAttribute
      */
-    public function setHeight(string $height): self
+    public function setHeight(string $height)
     {
         $this->ckOptions['height'] = $height;
-        return $this;
     }
 
     protected function formatPostfixLabel(): string
@@ -140,35 +115,5 @@ class CkAttribute extends HtmlAttribute
         return "";
     }
 
-    public function getEnterMode(): int
-    {
-        return $this->enterMode;
-    }
 
-    public function setEnterMode(int $enterMode): self
-    {
-        $this->enterMode = $enterMode;
-        return $this;
-    }
-
-    public function value2db(array $record)
-    {
-        if ($record[$this->fieldName()]) {
-
-            switch ($this->enterMode) {
-                case self::ENTER_MODE_BR:
-                    $record[$this->fieldName()] = Tools::strReplaceOccurrence('</p>', '', $record[$this->fieldName()]);
-                    $record[$this->fieldName()] = str_replace('<p>', '', $record[$this->fieldName()]);
-                    $record[$this->fieldName()] = str_replace('</p>', '</br></br>', $record[$this->fieldName()]);
-                    break;
-
-                case self:: ENTER_MODE_DIV:
-                    $record[$this->fieldName()] = str_replace('<p>', '<div>', $record[$this->fieldName()]);
-                    $record[$this->fieldName()] = str_replace('</p>', '</div>', $record[$this->fieldName()]);
-                    break;
-            }
-        }
-
-        return parent::value2db($record);
-    }
 }

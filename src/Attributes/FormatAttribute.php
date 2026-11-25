@@ -40,7 +40,7 @@ class FormatAttribute extends Attribute
      *                       Any other char is seen as a literal and displayed
      *                       literally as non-editable chars in the editor.
      */
-    public function __construct($name, $flags, $format)
+    public function __construct($name, $flags = 0, $format)
     {
         $this->m_format = $format;
         parent::__construct($name, $flags);
@@ -294,7 +294,7 @@ class FormatAttribute extends Attribute
      *
      * @return string The internal value
      */
-    public function fetchValue($postvars): string
+    public function fetchValue($postvars)
     {
         $masks = $this->_breakDown();
         $elems = isset($postvars[$this->fieldName()])?$postvars[$this->fieldName()]:null;

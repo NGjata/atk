@@ -13,7 +13,7 @@ class ExpressionCountAttribute extends ExpressionAttribute
         parent::__construct($name, $flags | self::AF_HIDE_VIEW | self::AF_HIDE_EDIT | self::AF_HIDE_SEARCH, $expression, 'number');
     }
 
-    public function display(array $record, string $mode): string
+    function display($record, $mode)
     {
         return '<div style="text-align:center">' . ($record[$this->fieldName()] ?: '') . '</div>';
     }

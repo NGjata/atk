@@ -18,42 +18,42 @@ class ListAttribute extends Attribute
     /**
      * Do not translate the options.
      */
-    const int AF_NO_TRANSLATION = 33554432;
+    const AF_NO_TRANSLATION = 33554432;
 
     /**
      * Do not add a default null option.
      */
-    const int AF_LIST_NO_OBLIGATORY_NULL_ITEM = 67108864;
+    const AF_LIST_NO_OBLIGATORY_NULL_ITEM = 67108864;
 
     /**
      * Do not add null option ever.
      */
-    const int AF_LIST_NO_NULL_ITEM = 134217728;
+    const AF_LIST_NO_NULL_ITEM = 134217728;
 
     /**
      * Add a default null option to obligatory items.
      */
-    const int AF_LIST_OBLIGATORY_NULL_ITEM = 268435456;
+    const AF_LIST_OBLIGATORY_NULL_ITEM = 268435456;
 
     /*
      * Array with options for Listbox
      */
-    public array $m_options = [];
+    public $m_options = [];
 
     /*
      * Array with values for Listbox
      */
-    public array $m_values = [];
+    public $m_values = [];
 
     /*
      * Array for fast lookup of what value belongs to what option.
      */
-    public array $m_lookup = [];
+    public $m_lookup = [];
 
     /*
-     * Array which holds the options, values and lookup array in cache
+     * Array which holds the options,values and lookup array in cache
      */
-    public array $m_types = [];
+    public $m_types = [];
 
     /*
      * Attribute that is to be selected
@@ -63,23 +63,23 @@ class ListAttribute extends Attribute
     /*
      * Value that is used when list is empty, normally empty
      */
-    public string $m_emptyvalue = '';
+    public $m_emptyvalue = '';
 
     public $m_onchangehandler_init = "newvalue = el.options[el.selectedIndex] ? el.options[el.selectedIndex].value : null;\n";
 
     /**
      * When autosearch is set to true, this attribute will automatically submit
      * the search form onchange. This will only happen in the admin action.
+     *
+     * @var bool
      */
-    protected bool $m_autoSearch = false;
+    protected $m_autoSearch = false;
 
-    /** @var array{normal: bool, extended: bool} */
-    protected array $m_multipleSearch = [
+    protected $m_multipleSearch = [
         'normal' => false,
         'extended' => true,
     ];
 
-    protected string $nullLabel = '';
 
     /**
      * Constructor.
@@ -96,9 +96,9 @@ class ListAttribute extends Attribute
      * @param array $valueArray Array with values. If you don't use this parameter,
      *                            values are assumed to be the same as the options.
      */
-    public function __construct($name, $flags, $optionArray, $valueArray = null)
+    public function __construct($name, $flags = 0, $optionArray, $valueArray = null)
     {
-        if (!is_array($valueArray) || Tools::count($valueArray) === 0) {
+        if (!is_array($valueArray) || Tools::count($valueArray) == 0) {
             $valueArray = $optionArray;
         }
 
@@ -129,14 +129,17 @@ class ListAttribute extends Attribute
 
     /**
      * Creates a lookup array to speedup translations.
+     *
+     * @param array $optionArray
+     * @param array $valueArray
      */
-    public function createLookupArray(array $optionArray, array $valueArray): static
+    public function createLookupArray($optionArray, $valueArray)
     {
         foreach ($optionArray as $id => $option) {
             $this->m_lookup[$valueArray[$id]] = $option;
         }
 
-        return $this->setSingleType('lookup', $this->m_lookup);
+        $this->_set('lookup', $this->m_lookup);
     }
 
     /**
@@ -144,13 +147,13 @@ class ListAttribute extends Attribute
      * For backwards compatibility we also check the old member variable m_options.
      *
      */
-    public function getOptions(): array
+    public function getOptions()
     {
-        if (!isset($this->m_types['options']) || Tools::count($this->m_types['options']) === 0) {
+        if (!isset($this->m_types['options']) || Tools::count($this->m_types['options']) == 0) {
             return $this->m_options;
         }
 
-        return $this->getSingleType('options');
+        return $this->_get('options');
     }
 
     /**
@@ -158,13 +161,13 @@ class ListAttribute extends Attribute
      * For backwards compatibility we also check the old member variable m_values.
      *
      */
-    public function getValues(): array
+    public function getValues()
     {
-        if (!isset($this->m_types['values']) || Tools::count($this->m_types['values']) === 0) {
+        if (!isset($this->m_types['values']) || Tools::count($this->m_types['values']) == 0) {
             return $this->m_values;
         }
 
-        return $this->getSingleType('values');
+        return $this->_get('values');
     }
 
     /**
@@ -172,13 +175,13 @@ class ListAttribute extends Attribute
      * For backwards compatibility we also check the old member variable m_lookup.
      *
      */
-    public function getLookup(): array
+    public function getLookup()
     {
-        if (!isset($this->m_types['lookup']) || Tools::count($this->m_types['lookup']) === 0) {
+        if (!isset($this->m_types['lookup']) || Tools::count($this->m_types['lookup']) == 0) {
             return $this->m_lookup;
         }
 
-        return $this->getSingleType('lookup');
+        return $this->_get('lookup');
     }
 
     /**
@@ -191,7 +194,7 @@ class ListAttribute extends Attribute
      *
      * @return array with options, values or lookup
      */
-    private function getSingleType(string $type): array
+    public function _get($type)
     {
         return $this->m_types[$type];
     }
@@ -204,25 +207,50 @@ class ListAttribute extends Attribute
      *
      * @param string $type ("options", "values" or "lookup)
      * @param array $value
-     * @return ListAttribute
+     *
+     * @return true
      */
-    private function setSingleType(string $type, array $value): static
+    public function _set($type, $value)
     {
         $this->m_types[$type] = $value;
-        return $this;
+
+        return true;
     }
 
     /**
      * Display's text version of Record.
      *
-     * @param array<string, mixed> $record
+     * @param array $record
      * @param string $mode
+     *
+     * @return string of $record
+     */
+    public function display($record, $mode)
+    {
+        return $this->_translateValue($record[$this->fieldName()], $record);
+    }
+
+    /**
+     * Translates the database value.
+     *
+     * @param string $value
+     * @param array $record The record
      *
      * @return string
      */
-    public function display(array $record, string $mode): string
+    public function _translateValue($value, $record = null)
     {
-        return isset($record[$this->fieldName()]) ? $this->translateValue($record[$this->fieldName()], $record) : '';
+        $lookup = $this->getLookup();
+        $res = '';
+        if (isset($lookup[$value])) {
+            if ($this->hasFlag(self::AF_NO_TRANSLATION)) {
+                $res = $lookup[$value];
+            } else {
+                $res = $this->text(array($this->fieldName().'_'.$lookup[$value], $lookup[$value]));
+            }
+        }
+
+        return $res;
     }
 
     /**
@@ -258,27 +286,27 @@ class ListAttribute extends Attribute
 
         $onchange = '';
         if (Tools::count($this->m_onchangecode)) {
-            $onchange = ' onChange="' . $this->getHtmlId($fieldprefix) . '_onChange(this)"';
+            $onchange = ' onChange="'.$this->getHtmlId($fieldprefix).'_onChange(this)"';
             $this->_renderChangeHandler($fieldprefix);
         }
 
         $data = '';
         foreach ($selectOptions as $k => $v) {
-            $data .= ' data-' . $k . '="' . htmlspecialchars($v) . '"';
+            $data .= ' data-'.$k.'="'.htmlspecialchars($v).'"';
         }
 
         $style = $styles = '';
-        foreach ($this->getCssStyles('edit') as $k => $v) {
+        foreach($this->getCssStyles('edit') as $k => $v) {
             $style .= "$k:$v;";
         }
-        if ($style != '') {
-            $styles = 'style="' . $style . '"';
+        if($style != ''){
+            $styles = 'style="'.$style.'"';
         }
 
-        $result = '<select id="' . $id . '" name="' . $name . '" ' . $this->getCSSClassAttribute() . $onchange . $data . $styles . '>';
+        $result = '<select id="'.$id.'" name="'.$name.'" '.$this->getCSSClassAttribute().$onchange.$data.$styles.'>';
 
         if ($hasNullOption) {
-            $result .= '<option value="' . $this->getEmptyValue() . '">' . $nullLabel . '</option>';
+            $result .= '<option value="'.$this->getEmptyValue().'">'.$nullLabel.'</option>';
         }
 
         $values = $this->getValues();
@@ -291,7 +319,7 @@ class ListAttribute extends Attribute
                 $sel = 'selected';
             }
 
-            $result .= '<option value="' . $values[$i] . '" ' . $sel . '>' . $this->translateValue($values[$i], $record);
+            $result .= '<option value="'.$values[$i].'" '.$sel.'>'.$this->_translateValue($values[$i], $record);
         }
 
         $result .= '</select>';
@@ -300,59 +328,30 @@ class ListAttribute extends Attribute
         return $result;
     }
 
-    /**
-     * Translates the database value.
-     */
-    protected function translateValue(mixed $value, ?array $record = null): string
-    {
-        $lookup = $this->getLookup();
-        $res = '';
-        if (isset($lookup[$value])) {
-            if ($this->hasFlag(self::AF_NO_TRANSLATION)) {
-                $res = $lookup[$value];
-            } else {
-                $res = $this->text(array($this->fieldName() . '_' . $lookup[$value], $lookup[$value]));
-            }
-        }
 
-        return $res;
-    }
-
-    public function getNullLabel(): string
+    public function getNullLabel()
     {
         if ($this->hasNullOption()) {
-            if ($this->nullLabel) {
-                // specific null label
-                return $this->nullLabel;
-            }
-
             // use a different (more descriptive) text for obligatory items
-            $textKey = $this->hasFlag(self::AF_OBLIGATORY) ? 'list_null_value_obligatory' : 'list_null_value';
+            $text_key = $this->hasFlag(self::AF_OBLIGATORY) ? 'list_null_value_obligatory' : 'list_null_value';
 
-            return htmlentities($this->text([$this->fieldName() . '_' . $textKey, $textKey]));
+            return htmlentities($this->text([$this->fieldName().'_'.$text_key, $text_key,]));
         }
 
         return '';
     }
 
-    public function setNullLabel(string $nullLabel): static
-    {
-        $this->nullLabel = $nullLabel;
-        return $this;
-    }
-
-    public function hasNullOption(): bool
+    public function hasNullOption()
     {
         if (!$this->hasFlag(self::AF_LIST_NO_NULL_ITEM)) {
-            if (!$this->hasFlag(self::AF_OBLIGATORY)
-                || ($this->hasFlag(self::AF_LIST_OBLIGATORY_NULL_ITEM) || (Config::getGlobal('list_obligatory_null_item') && !$this->hasFlag(self::AF_LIST_NO_OBLIGATORY_NULL_ITEM)))
-            ) {
+            if (!$this->hasFlag(self::AF_OBLIGATORY) || ($this->hasFlag(self::AF_LIST_OBLIGATORY_NULL_ITEM) || (Config::getGlobal('list_obligatory_null_item') && !$this->hasFlag(self::AF_LIST_NO_OBLIGATORY_NULL_ITEM)))) {
                 return true;
             }
         }
 
         return false;
     }
+
 
     /**
      * Returns a piece of html code that can be used to get search terms input
@@ -361,6 +360,8 @@ class ListAttribute extends Attribute
      * The framework calls this method to display the searchbox
      * in the search bar of the recordlist, and to display a more extensive
      * search in the 'extended' search screen.
+     *
+     * @todo Configurable rows
      *
      * @param array $record Array with values
      * @param bool $extended if set to false, a simple search input is
@@ -371,10 +372,9 @@ class ListAttribute extends Attribute
      *                            make a difference for $extended is true, but
      *                            derived attributes may reimplement this.
      * @param string $fieldprefix The fieldprefix of this attribute's HTML element.
-     * @param DataGrid|null $grid
+     * @param DataGrid $grid
      *
      * @return string A piece of html-code with a checkbox
-     * @todo Configurable rows
      */
     public function search($record, $extended = false, $fieldprefix = '', DataGrid $grid = null): string
     {
@@ -397,18 +397,23 @@ class ListAttribute extends Attribute
         }
         $selectOptions = array_merge($selectOptions, $this->m_select2Options['search']);
 
-        foreach ($this->getCssStyles($type) as $k => $v) {
+        if($isMultiple && $this->getCssStyle($type, 'width') === null && $this->getCssStyle($type, 'min-width') === null) {
+            $this->setCssStyle($type, 'min-width', '220px');
+        }
+
+        foreach($this->getCssStyles($type) as $k => $v) {
             $style .= "$k:$v;";
         }
 
-        $result = '<select ' . ($isMultiple ? 'multiple' : '') . ' ' . $class . ' id="' . $id . '" name="' . $name . '[]"';
+        $result = '<select '.($isMultiple ? 'multiple' : '').' '.$class.' id="'.$id.'" name="'.$name.'[]"';
         foreach ($selectOptions as $k => $v) {
-            $result .= ' data-' . $k . '="' . htmlspecialchars($v) . '"';
+            $result .= ' data-'.$k.'="'.htmlspecialchars($v).'"';
         }
-        $result .= $style != '' ? ' style="' . $style . '"' : '';
+        $style = 'width:100%; ';
+        $result .= $style != '' ? ' style="'.$style.'"': '';
         $result .= ' >';
 
-        $selValues = $record[$this->fieldName()] ?? null;
+        $selValues = isset($record[$this->fieldName()]) ? $record[$this->fieldName()] : null;
         if (!is_array($selValues)) {
             $selValues = [$selValues];
         }
@@ -424,14 +429,14 @@ class ListAttribute extends Attribute
         // "none" option
         if (!$this->hasFlag(self::AF_OBLIGATORY) && !$this->hasFlag(self::AF_LIST_NO_NULL_ITEM)) {
             $selected = Tools::atk_in_array('__NONE__', $selValues) ? ' selected' : '';
-            $option = $this->nullLabel ?: Tools::atktext('search_none');
+            $option = Tools::atktext('search_none');
             $result .= sprintf('<option value="__NONE__"%s>%s</option>', $selected, $option);
         }
 
         // normal options
         foreach ($values as $value) {
             $selected = Tools::atk_in_array(((string)$value), $selValues, true) ? ' selected' : '';
-            $option = $this->translateValue($value, $record);
+            $option = $this->_translateValue($value, $record);
             $result .= sprintf('<option value="%s"%s>%s</option>', $value, $selected, $option);
         }
 
@@ -441,7 +446,7 @@ class ListAttribute extends Attribute
         $onchange = '';
 
         // if is multiple, replace null selection with empty string
-        if ($isMultiple) {
+        if($isMultiple) {
             $onchange .= <<<EOF
 var s=jQuery(this), v = s.val();
 if (v != null && v.length > 0) {
@@ -462,8 +467,8 @@ EOF;
             $onchange .= $grid->getUpdateCall(array('atkstartat' => 0), [], 'ATK.DataGrid.extractSearchOverrides');
         }
 
-        if ($onchange != '') {
-            $this->getOwnerInstance()->getPage()->register_loadscript('jQuery("#' . $id . '").on("change", function(){' . $onchange . '})');
+        if($onchange != '') {
+            $this->getOwnerInstance()->getPage()->register_loadscript('jQuery("#'.$id.'").on("change", function(){'.$onchange.'})');
         }
 
         return $result;
@@ -495,18 +500,18 @@ EOF;
 
             if (Tools::count($value) == 1 && $value[0] != '') { // exactly one value
                 if ($value[0] == '__NONE__') {
-                    return $query->nullCondition($table . '.' . $this->fieldName(), true);
+                    return $query->nullCondition($table.'.'.$this->fieldName(), true);
                 } else {
-                    return $query->exactCondition($table . '.' . $this->fieldName(), $this->escapeSQL($value[0]), $this->dbFieldType());
+                    return $query->exactCondition($table.'.'.$this->fieldName(), $this->escapeSQL($value[0]), $this->dbFieldType());
                 }
             } elseif (Tools::count($value) > 1) { // search for more values
                 if (in_array('__NONE__', $value)) {
                     unset($value[array_search('__NONE__', $value)]);
 
-                    return sprintf('(%s OR %s)', $query->nullCondition($table . '.' . $this->fieldName(), true),
-                        $table . '.' . $this->fieldName() . " IN ('" . implode("','", $value) . "')");
+                    return sprintf('(%s OR %s)', $query->nullCondition($table.'.'.$this->fieldName(), true),
+                        $table.'.'.$this->fieldName()." IN ('".implode("','", $value)."')");
                 } else {
-                    return $table . '.' . $this->fieldName() . " IN ('" . implode("','", $value) . "')";
+                    return $table.'.'.$this->fieldName()." IN ('".implode("','", $value)."')";
                 }
             }
         }
@@ -543,25 +548,28 @@ EOF;
 
     /**
      * Set autohide for the given attribute.
+     *
+     * @param string $attrib
+     * @param array $valuearr
      */
-    public function setAutoHide(string $attributeName, array $valuesToHide): static
+    public function setAutoHide($attrib, $valuearr)
     {
         $conditions = [];
-        foreach ($valuesToHide as $value) {
+        foreach ($valuearr as $value) {
             $conditions[] = "newvalue=='$value'";
         }
-        $this->addOnChangeHandler('if (' . implode('||', $conditions) . ") ATK.Tools.hideAttrib('$attributeName'); else ATK.Tools.showAttrib('$attributeName');");
-        return $this;
+        $this->addOnChangeHandler('if ('.implode('||', $conditions).") ATK.Tools.hideAttrib('$attrib'); else ATK.Tools.showAttrib('$attrib');");
     }
 
     /**
      * When autosearch is set to true, this attribute will automatically submit
      * the search form onchange. This will only happen in the admin action.
+     *
+     * @param bool $auto
      */
-    public function setAutoSearch(bool $auto = false): static
+    public function setAutoSearch($auto = false)
     {
         $this->m_autoSearch = $auto;
-        return $this;
     }
 
     /**
@@ -571,16 +579,17 @@ EOF;
      *
      * @param string $value the value we set for empty value
      */
-    public function setEmptyValue(string $value): static
+    public function setEmptyValue($value)
     {
         $this->m_emptyvalue = $value;
-        return $this;
     }
 
     /**
      * Gets the value for the empty entry in the list attribute.
+     *
+     * @return string
      */
-    public function getEmptyValue(): string
+    public function getEmptyValue()
     {
         return $this->m_emptyvalue;
     }
@@ -622,99 +631,122 @@ EOF;
 
     /**
      * Add option/value to dropdown.
+     *
+     * @param string $option
+     * @param string $value
+     *
+     * @return $this
      */
-    public function addOption(string $option, mixed $value = ''): static
+    public function addOption($option, $value = '')
     {
         if ($value != 0 && empty($value)) {
             $value = $option;
         }
-        $currentOptions = $this->getSingleType('options');
+        $currentOptions = $this->_get('options');
         $currentOptions[] = $option;
-        $this->setSingleType('options', $currentOptions);
+        $this->_set('options', $currentOptions);
 
-        $currentValues = $this->getSingleType('values');
+        $currentValues = $this->_get('values');
         $currentValues[] = $value;
-        $this->setSingleType('values', $currentValues);
+        $this->_set('values', $currentValues);
 
-        return $this->createLookupArray($currentOptions, $currentValues);
+        $this->createLookupArray($currentOptions, $currentValues);
+
+        return $this;
     }
 
     /**
      * Remove option from dropdown.
+     *
+     * @param string $option
+     *
+     * @return $this
      */
-    public function removeOption(string $option): static
+    public function removeOption($option)
     {
-        $currentOptions = $this->getSingleType('options');
-        $currentValues = $this->getSingleType('values');
+        $currentOptions = $this->_get('options');
+        $currentValues = $this->_get('values');
 
         $index = array_search($option, $currentOptions);
 
         array_splice($currentOptions, $index, 1); // remove option
         array_splice($currentValues, $index, 1);  // remove value
 
-        $this->setSingleType('options', $currentOptions);
-        $this->setSingleType('values', $currentValues);
+        $this->_set('options', $currentOptions);
+        $this->_set('values', $currentValues);
 
         return $this;
     }
 
     /**
      * Set the option and value array.
+     *
+     * @param array $optionArray array with options
+     * @param array $valueArray array with values
+     *
+     * @return object reference to this attribute
      */
-    public function setOptions(array $optionArray, ?array $valueArray = null): static
+    public function setOptions($optionArray, $valueArray)
     {
         // m_options and m_values array are still here for backwardscompatibility
         $this->m_options = $optionArray;
-        $this->setSingleType('options', $optionArray);
-
-        if (!is_array($valueArray) || Tools::count($valueArray) === 0) {
-            $valueArray = $optionArray;
-        }
-
+        $this->_set('options', $optionArray);
         $this->m_values = $valueArray;
-        $this->setSingleType('values', $valueArray);
+        $this->_set('values', $valueArray);
 
-        return $this->createLookupArray($optionArray, $valueArray);
+        $this->createLookupArray($optionArray, $valueArray);
+
+        return $this;
     }
 
     /**
      * Remove value from dropdown.
+     *
+     * @param string $value
+     *
+     * @return $this
      */
-    public function removeValue(mixed $value): static
+    public function removeValue($value)
     {
-        $currentOptions = $this->getSingleType('options');
-        $currentValues = $this->getSingleType('values');
+        $currentOptions = $this->_get('options');
+        $currentValues = $this->_get('values');
 
         $v = array_search($value, $currentValues);
 
         array_splice($currentOptions, $v, 1); // remove option
         array_splice($currentValues, $v, 1);  // remove value
 
-        $this->setSingleType('options', $currentOptions);
-        $this->setSingleType('values', $currentValues);
+        $this->_set('options', $currentOptions);
+        $this->_set('values', $currentValues);
 
         return $this;
     }
 
-    public function setMultipleSearch(bool $normal = true, bool $extended = true): static
+    /**
+     * @param bool $normal
+     * @param bool $extended
+     * @return array $m_multipleSearch
+     */
+    public function setMultipleSearch($normal = true, $extended = true)
     {
         $this->m_multipleSearch = [
             'normal' => $normal,
             'extended' => $extended,
         ];
 
-        return $this;
+        return $this->m_multipleSearch;
     }
 
-    /**
-     * @return array{normal: bool, extended: bool}
-     */
-    public function getMultipleSearch(): array
+    public function getMultipleSearch()
     {
         return $this->m_multipleSearch;
     }
 
-    public function isMultipleSearch(bool $extended): bool
+    /**
+     * @param bool $extended
+     * @return bool
+     */
+    public function isMultipleSearch($extended)
     {
         $ms = $this->getMultipleSearch();
 

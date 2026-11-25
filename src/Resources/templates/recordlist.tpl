@@ -17,7 +17,7 @@
             {$mra}</div>
     {/if}
 
-    <div class="recordListContent overflow-auto">
+    <div class="overflow-auto">
 
 
         <!-- todo: table-striped -->
@@ -28,7 +28,7 @@
             <tr class="recordList-header-row" role="row">
                 {section name=headerloop loop=$header}
                     <th {if $smarty.section.headerloop.index===0}class="recordListThFirst"
-                        {else}class="recordListTh{if isset($header[headerloop].css_class)} {$header[headerloop].css_class}{/if}"{/if}>
+                        {else}class="recordListTh"{/if}>
                         {if $header[headerloop].content != ""}{$header[headerloop].content}{else}&nbsp;{/if}
                     </th>
                 {/section}
@@ -71,7 +71,7 @@
                         <{if $row.type == "subtotal"}th{else}td{/if}
                                 class="{if $smarty.section.colloop.index===0}recordListTdFirst{else}recordListTd{/if}{if $row.cols[colloop].type == "data" && $recordlist_onclick} clickable{/if} row-type-{$row.cols[colloop].type}"
                                 {if $row.cols[colloop].type == "data" && $recordlist_onclick} onclick="ATK.RL.rl_try('{$listid}', event, {$row.rownum}, ['select', 'edit', 'view'
-                    ], false);"{/if}{if $smarty.section.colloop.index===0}style="width: {$recordListTdFirstWidth}px;"{/if}>
+                    ], false);"{/if}>
                             {if $row.cols[colloop].content != ""}{$row.cols[colloop].content}{else}&nbsp;{/if}
                         </{if $row.type == "subtotal"}th{else}td{/if}>
                     {/section}
