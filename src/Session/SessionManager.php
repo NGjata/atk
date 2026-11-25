@@ -5,6 +5,7 @@ namespace Sintattica\Atk\Session;
 use Sintattica\Atk\Core\Atk;
 use Sintattica\Atk\Core\Config;
 use Sintattica\Atk\Core\Tools;
+use Sintattica\Atk\Security\WhereClauseValidator;
 use Sintattica\Atk\Ui\Ui;
 
 /**
@@ -120,6 +121,7 @@ class SessionManager
         Tools::atkDataDecode($_REQUEST);
         $ATK_VARS = array_merge($_GET, $_POST);
         Tools::atkDataDecode($ATK_VARS);
+        $this->validateRequestWhereClauses($ATK_VARS);
 
         // inject $_FILES
         $atkfiles = $_FILES;
@@ -164,6 +166,62 @@ class SessionManager
         $cookiepath = Config::getGlobal('cookie_path');
         $cookiedomain = (Config::getGlobal('cookiedomain') != '') ? Config::getGlobal('cookiedomain') : null;
         session_set_cookie_params($cookie_params['lifetime'], $cookiepath, $cookiedomain);
+    }
+
+    /**
+     * Validate the SQL fragments that ATK accepts from the request
+     * (atkselector, atkfilter, atkprimkey), at any nesting level.
+     *
+     * Behaviour depends on the 'where_clause_validation' config value:
+     * 'off' does nothing, 'log' reports rejected values in the PHP error log
+     * and lets them through, 'enforce' halts the request.
+     *
+     * @param array $vars The decoded request variables
+     */
+    protected function validateRequestWhereClauses(array $vars)
+    {
+        $mode = Config::getGlobal('where_clause_validation', WhereClauseValidator::MODE_LOG);
+        if ($mode !== WhereClauseValidator::MODE_LOG && $mode !== WhereClauseValidator::MODE_ENFORCE) {
+            return;
+        }
+
+        $dbConfig = Config::getGlobal('db');
+        $driver = isset($dbConfig['default']['driver']) ? strtolower((string) $dbConfig['default']['driver']) : 'mysqli';
+        $validator = new WhereClauseValidator(strpos($driver, 'mysql') !== false);
+
+        $rejected = [];
+        $walk = function (array $data, $depth) use (&$walk, &$rejected, $validator) {
+            if ($depth > 10) {
+                return;
+            }
+            foreach ($data as $key => $value) {
+                if ($key === 'atkprimkey' || $key === 'atkselector' || $key === 'atkfilter') {
+                    foreach (is_array($value) ? $value : [$value] as $clause) {
+                        $ok = $key === 'atkprimkey' ? $validator->isValidKey($clause) : $validator->isValidCondition($clause);
+                        if (!$ok) {
+                            $rejected[] = [$key, is_string($clause) ? $clause : gettype($clause)];
+                        }
+                    }
+                } elseif (is_array($value)) {
+                    $walk($value, $depth + 1);
+                }
+            }
+        };
+        $walk($vars, 0);
+
+        foreach ($rejected as list($key, $clause)) {
+            $node = isset($vars['atknodeuri']) && is_string($vars['atknodeuri']) ? $vars['atknodeuri'] : '?';
+            $action = isset($vars['atkaction']) && is_string($vars['atkaction']) ? $vars['atkaction'] : '?';
+            error_log(sprintf(
+                'ATK where clause validation (%s): rejected %s for %s/%s: %s',
+                $mode, $key, preg_replace('/[^A-Za-z0-9_.]/', '?', $node), preg_replace('/[^A-Za-z0-9_]/', '?', $action),
+                substr(addcslashes($clause, "\0..\37\177..\377"), 0, 300)
+            ));
+        }
+
+        if ($rejected && $mode === WhereClauseValidator::MODE_ENFORCE) {
+            Tools::atkhalt('Invalid '.$rejected[0][0].' in request', 'critical');
+        }
     }
 
     /**
