@@ -398,14 +398,14 @@ class SmartSearchHandler extends AbstractSearchHandler
 
         for ($i = 0, $_i = Tools::count($path); $i < $_i; ++$i) {
             $entry = &$path[$i];
-            $entry['name'] = "{$prefix}[{$entry[nr]}]";
+            $entry['name'] = "{$prefix}[{$entry['nr']}]";
             $entry['field'] = $this->getAttributeList($entry);
         }
 
         $result = '';
         for ($i = Tools::count($path) - 1, $_i = 0; $i >= $_i; --$i) {
             $entry = &$path[$i];
-            $fieldName = "criterium_{$id}_{$entry[nr]}_other";
+            $fieldName = "criterium_{$id}_{$entry['nr']}_other";
             $readOnly = Tools::count($entry['attrs']) == 1 && !$entry['includeSelf'];
             $hasLabel = !$readOnly || !is_a($entry['attr'], \Sintattica\Atk\Relations\ManyToOneRelation::class);
 
@@ -420,7 +420,7 @@ class SmartSearchHandler extends AbstractSearchHandler
                 $modeUrl = $sm->sessionUrl(Tools::dispatch_url($this->m_node->atkNodeUri(), 'smartsearch',
                     array('criterium_id' => $id, 'field_nr' => $entry['nr'], 'atkpartial' => 'criteriummode')), SessionManager::SESSION_NEW);
 
-                $scriptCode[] = "ATK.SmartSearchHandler.registerCriteriumFieldListener('{$entry[name]}', '{$prefix}', '{$fieldName}', '{$fieldUrl}', '{$valueName}', '{$valueUrl}', '{$modeName}', '{$modeUrl}')";
+                $scriptCode[] = "ATK.SmartSearchHandler.registerCriteriumFieldListener('{$entry['name']}', '{$prefix}', '{$fieldName}', '{$fieldUrl}', '{$valueName}', '{$valueUrl}', '{$modeName}', '{$modeUrl}')";
             }
 
             $result = $entry['field'].($hasLabel ? '&nbsp;' : '').'<span id="'.$fieldName.'">'.$result.'</span>';
