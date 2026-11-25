@@ -11,7 +11,7 @@
     "psr-4": {"Sintattica\\Atk\\": "src/"}
   },
   "require": {
-    "php": ">=7.2",
+    "php": ">=8.1",
     "fightbulc/moment": "^1.13",
     "smarty/smarty": "^4.5.7",
     "vlucas/phpdotenv": "^v5.4.1",
@@ -19,5 +19,12 @@
     "ext-json": "*",
     "ext-simplexml": "*",
     "ext-zip": "*"
+  },
+  "suggest": {
+    "ext-mysqli": "Required by the default MySqli database driver",
+    "ext-pgsql": "Required by the PgSql database driver"
+  },
+  "scripts": {
+    "lint": "find src -name '*.php' -print0 | xargs -0 -n1 -P4 php -d display_errors=1 -l | (! grep -E '(Parse|Fatal) error|Errors parsing')"
   }
 }
