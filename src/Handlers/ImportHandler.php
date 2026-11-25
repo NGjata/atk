@@ -50,6 +50,13 @@ class ImportHandler extends ActionHandler
 
         $phase = ($this->m_postvars['phase'] != '' ? $this->m_postvars['phase'] : 'init');
 
+        // every step after the first form uploads or imports data
+        if ($phase != 'init' && !$this->requestHasValidCSRFToken()) {
+            $this->renderAccessDeniedPage();
+
+            return;
+        }
+
         switch ($phase) {
             case 'init':
                 $this->doInit();
@@ -102,7 +109,7 @@ class ImportHandler extends ActionHandler
         $sm = SessionManager::getInstance();
         $action = Config::getGlobal('dispatcher');
 
-        $formStart = '<form id="entryform" name="entryform" enctype="multipart/form-data" action="'.$action.'" method="post">'.$sm->formState($sm->atkLevel() == 0 ? SessionManager::SESSION_NESTED : SessionManager::SESSION_REPLACE).'<input type="hidden" name="atknodeuri" value="'.$this->m_node->atkNodeUri().'" />'.'<input type="hidden" name="atkaction" value="'.$this->m_node->m_action.'" />';
+        $formStart = '<form id="entryform" name="entryform" enctype="multipart/form-data" action="'.$action.'" method="post">'.$sm->formState($sm->atkLevel() == 0 ? SessionManager::SESSION_NESTED : SessionManager::SESSION_REPLACE).'<input type="hidden" name="atkcsrftoken" value="'.$this->getCSRFToken().'"><input type="hidden" name="atknodeuri" value="'.$this->m_node->atkNodeUri().'" />'.'<input type="hidden" name="atkaction" value="'.$this->m_node->m_action.'" />';
 
         $buttons = $this->invoke('getImportButtons', $phase);
 

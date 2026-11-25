@@ -18,6 +18,13 @@ class CopyHandler extends ActionHandler
      */
     public function action_copy()
     {
+        // copying changes data: the request must carry the session's CSRF token
+        if (!$this->requestHasValidCSRFToken()) {
+            $this->renderAccessDeniedPage();
+
+            return;
+        }
+
         $this->invoke('nodeCopy');
     }
 

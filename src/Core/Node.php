@@ -2674,10 +2674,10 @@ class Node
                 $actions['delete'] = Tools::dispatch_url($this->atkNodeUri(), 'delete', array_merge($params, ['atkaction' => 'delete']));
             }
             if ($this->hasFlag(self::NF_COPY) && $this->allowed('copy')) {
-                $actions['copy'] = Tools::dispatch_url($this->atkNodeUri(), 'copy', array_merge($params, ['atkaction' => 'copy']));
+                $actions['copy'] = Tools::dispatch_url($this->atkNodeUri(), 'copy', array_merge($params, ['atkaction' => 'copy', 'atkcsrftoken' => ActionHandler::csrfToken()]));
             }
             if ($this->hasFlag(self::NF_EDITAFTERCOPY) && $this->allowed('editcopy')) {
-                $actions['editcopy'] = Tools::dispatch_url($this->atkNodeUri(), 'editcopy', array_merge($params, ['atkaction' => 'editcopy']));
+                $actions['editcopy'] = Tools::dispatch_url($this->atkNodeUri(), 'editcopy', array_merge($params, ['atkaction' => 'editcopy', 'atkcsrftoken' => ActionHandler::csrfToken()]));
             }
         }
 

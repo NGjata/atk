@@ -476,6 +476,17 @@ class ActionHandler
      */
     public function getCSRFToken()
     {
+        return self::csrfToken();
+    }
+
+    /**
+     * The CSRF token of the current session, for code that builds links or
+     * forms outside of a handler (add it as the 'atkcsrftoken' parameter).
+     *
+     * @return string CSRF token
+     */
+    public static function csrfToken()
+    {
         // The token lives in the session only. It must never be read from the
         // request: a token the client can set is no protection.
         $session = &SessionManager::getSession();
@@ -484,6 +495,22 @@ class ActionHandler
         }
 
         return $session['csrf_token'];
+    }
+
+    /**
+     * Does the current request carry the valid CSRF token ('atkcsrftoken')?
+     *
+     * @return bool
+     */
+    protected function requestHasValidCSRFToken()
+    {
+        $prefix = isset($this->m_postvars['atkfieldprefix']) && is_string($this->m_postvars['atkfieldprefix']) ? $this->m_postvars['atkfieldprefix'] : '';
+        $token = isset($this->m_postvars[$prefix.'atkcsrftoken']) ? $this->m_postvars[$prefix.'atkcsrftoken'] : null;
+        if ($token === null && isset($this->m_postvars['atkcsrftoken'])) {
+            $token = $this->m_postvars['atkcsrftoken'];
+        }
+
+        return $this->isValidCSRFToken($token);
     }
 
     /**

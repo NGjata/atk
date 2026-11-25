@@ -13,6 +13,10 @@ Security and PHP 8 fixes. No API changes.
   (only real environment variables). They do now, so check that `.env` holds what you expect.
 - **MySQL errors are reported through ATK again** instead of being thrown as `mysqli_sql_exception`.
 - **CSRF tokens** are stored in the session only. Forms that were open during the upgrade must be reloaded.
+- **Copy, edit-copy, multi-update and import now require the CSRF token.** The links and forms ATK generates carry it.
+  Application code that builds its own link to one of these actions must add
+  `'atkcsrftoken' => ActionHandler::csrfToken()` to the URL parameters, or the request is denied.
+- A copy request with no page to return to goes to the node's list (it used to copy the record repeatedly).
 - **Sessions** get a new id at login; the session cookie is `HttpOnly`, `SameSite=Lax` and `Secure` on HTTPS.
   The password hash is no longer kept in the session user record.
 - Unknown search modes, non-numeric paging values and non-column export orderings are ignored.

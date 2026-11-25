@@ -9,6 +9,13 @@ class MultiupdateHandler extends ActionHandler
      */
     public function action_multiupdate()
     {
+        $this->setPostvars($this->getNode()->m_postvars);
+        if (!$this->requestHasValidCSRFToken()) {
+            $this->renderAccessDeniedPage();
+
+            return;
+        }
+
         $data = $this->getNode()->m_postvars['atkdatagriddata'];
         foreach ($data as $entry) {
             $entry = $this->getNode()->updateRecord($entry, $this->getNode()->m_editableListAttributes);
