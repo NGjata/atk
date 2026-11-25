@@ -468,7 +468,7 @@ class ActionHandler
     }
 
     /**
-     * Get/generate CSRF token for the current session stack.
+     * Get/generate the CSRF token of the current session.
      *
      * http://www.owasp.org/index.php/Cross-Site_Request_Forgery_%28CSRF%29_Prevention_Cheat_Sheet
      *
@@ -476,22 +476,19 @@ class ActionHandler
      */
     public function getCSRFToken()
     {
-        // retrieve earlier generated token from the session stack
-        $token = SessionManager::getInstance()->globalStackVar('ATK_CSRF_TOKEN');
-        if ($token != null) {
-            return $token;
+        // The token lives in the session only. It must never be read from the
+        // request: a token the client can set is no protection.
+        $session = &SessionManager::getSession();
+        if (empty($session['csrf_token']) || !is_string($session['csrf_token'])) {
+            $session['csrf_token'] = bin2hex(random_bytes(32));
         }
 
-        // generate and store token in sesion stack
-        $token = md5(uniqid(rand(), true));
-        SessionManager::getInstance()->globalStackVar('ATK_CSRF_TOKEN', $token);
-
-        return $token;
+        return $session['csrf_token'];
     }
 
     /**
-     * Checks whatever the given CSRF token matches the one stored in the
-     * session stack.
+     * Checks whether the given CSRF token matches the one stored in the
+     * session.
      *
      * @param string $token
      *
@@ -499,6 +496,6 @@ class ActionHandler
      */
     protected function isValidCSRFToken($token)
     {
-        return $this->getCSRFToken() == $token;
+        return is_string($token) && $token !== '' && hash_equals($this->getCSRFToken(), $token);
     }
 }
