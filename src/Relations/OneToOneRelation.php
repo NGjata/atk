@@ -94,17 +94,17 @@ class OneToOneRelation extends Relation
      *                            the master record. In slave mode, this parameter
      *                            should be empty.
      */
-    public function __construct($name, $flags, $destination, $refKey = '')
+    public function __construct($name, $flags = 0, $destination, $refKey = '')
     {
         $flags = $flags | self::AF_ONETOONE_LAZY;
         parent::__construct($name, $flags, $destination);
         $this->m_refKey = $refKey;
     }
 
-    public function display(array $record, string $mode): string
+    public function display($record, $mode)
     {
         if ($mode == 'view') {
-            return '';
+            return;
         }
 
         $myrecord = $record[$this->fieldName()];
@@ -142,7 +142,7 @@ class OneToOneRelation extends Relation
         return null;
     }
 
-    public function addToQuery($query, $tablename = '', $fieldaliasprefix = '', &$record = [], $level = 0, $mode = '')
+    public function addToQuery($query, $tablename = '', $fieldaliasprefix = '', &$record, $level = 0, $mode = '')
     {
         if ($this->createDestination()) {
             if ($mode != 'update' && $mode != 'add') {
@@ -281,34 +281,34 @@ class OneToOneRelation extends Relation
      * own conversion.
      * This is the exact opposite of the db2value method.
      *
-     * @param array $record The record that holds this attribute's value.
+     * @param array $rec The record that holds this attribute's value.
      *
      * @return string The database compatible value
      */
-    public function db2value($record)
+    public function db2value($rec)
     {
         // we need to pass all values to the destination node, so it can
         // run it's db2value stuff over it..
         if ($this->hasFlag(self::AF_ONETOONE_LAZY) && $this->m_refKey == '') {
-            return parent::db2value($record);
+            return parent::db2value($rec);
         }
 
         if ($this->createDestination()) {
-            (isset($record[$this->fieldName()][$this->m_destInstance->primaryKeyField()])) ? $pkval = $record[$this->fieldName()][$this->m_destInstance->primaryKeyField()] : $pkval = null;
+            (isset($rec[$this->fieldName()][$this->m_destInstance->primaryKeyField()])) ? $pkval = $rec[$this->fieldName()][$this->m_destInstance->primaryKeyField()] : $pkval = null;
             if ($pkval != null && $pkval != '') { // If primary key is not filled, there was no record, so we
                 // should return NULL.
                 foreach (array_keys($this->m_destInstance->m_attribList) as $attribname) {
                     $p_attrib = $this->m_destInstance->m_attribList[$attribname];
-                    $record[$this->fieldName()][$attribname] = $p_attrib->db2value($record[$this->fieldName()]);
+                    $rec[$this->fieldName()][$attribname] = $p_attrib->db2value($rec[$this->fieldName()]);
                 }
                 // also set the primkey..
-                $record[$this->fieldName()]['atkprimkey'] = $this->m_destInstance->primaryKey($record[$this->fieldName()]);
+                $rec[$this->fieldName()]['atkprimkey'] = $this->m_destInstance->primaryKey($rec[$this->fieldName()]);
 
-                return $record[$this->fieldName()];
+                return $rec[$this->fieldName()];
             }
         }
 
-        return null;
+        return;
     }
 
     public function fetchMeta($metadata)
@@ -1123,17 +1123,17 @@ class OneToOneRelation extends Relation
     /**
      * Convert the internal value to the database value.
      *
-     * @param array $record The record that holds the value for this attribute
+     * @param array $rec The record that holds the value for this attribute
      *
      * @return mixed The database value
      */
-    public function value2db(array $record)
+    public function value2db(array $rec)
     {
-        if (isset($record[$this->fieldName()])) {
-            if (is_array($record[$this->fieldName()])) {
-                return $this->escapeSQL($record[$this->fieldName()][$this->m_destInstance->primaryKeyField()]);
+        if (is_array($rec) && isset($rec[$this->fieldName()])) {
+            if (is_array($rec[$this->fieldName()])) {
+                return $this->escapeSQL($rec[$this->fieldName()][$this->m_destInstance->primaryKeyField()]);
             } else {
-                return $record[$this->fieldName()];
+                return $rec[$this->fieldName()];
             }
         }
 

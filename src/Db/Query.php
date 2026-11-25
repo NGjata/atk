@@ -38,7 +38,7 @@ class Query
     public $m_searchconditions;
 
     /*
-     * Var with 'AND' or 'OR' method
+     * Var with AND or OR method
      */
     public $m_searchmethod;
 
@@ -46,8 +46,6 @@ class Query
      * Array with aliases
      */
     public $m_aliases;
-
-    public array $m_values;
 
     /*
      * Array with field aliases
@@ -77,7 +75,7 @@ class Query
     /*
      * Do we need to perform a DISTINCT query?
      */
-    public bool $m_distinct = false;
+    public $m_distinct = false;
 
     /*
      * Do we need to fetch only a specific set of records?
@@ -109,7 +107,7 @@ class Query
      * @var array
      * @access private
      */
-    public array $m_quotedfields = [];
+    public $m_quotedfields = [];
 
     /*
      * Names reserved by the database,
@@ -119,9 +117,7 @@ class Query
      * @var array
      * @access private
      */
-    public array $m_reservedNames = ['from', 'select', 'order', 'group', 'release', 'index', 'table'];
-
-    public array $m_aliasLookup;
+    public $m_reservedNames = array('from', 'select', 'order', 'group', 'release', 'index', 'table');
 
     /**
      * Initialize all variables.

@@ -5,7 +5,6 @@ namespace Sintattica\Atk\Db\Statement;
 use IteratorAggregate;
 use Sintattica\Atk\Db\Db;
 use Sintattica\Atk\Core\Tools;
-use Traversable;
 
 /**
  * A statement can be used to execute a query.
@@ -172,32 +171,32 @@ abstract class Statement implements IteratorAggregate
     /**
      * Prepares the statement for execution.
      */
-    abstract protected function _prepare(): void;
+    abstract protected function _prepare();
 
     /**
      * Executes the statement using the given bind parameters.
      *
      * @param array $params bind parameters
      */
-    abstract protected function _execute(array $params): void;
+    abstract protected function _execute($params);
 
     /**
      * Fetches the next row from the result set.
      *
      * @return array|false next row from the result set (false if no other rows exist)
      */
-    abstract protected function _fetch(): false|array;
+    abstract protected function _fetch();
 
     /**
      * Resets the statement so that it can be re-used again.
      */
-    abstract protected function _reset(): void;
+    abstract protected function _reset();
 
     /**
      * Frees up all resources for this statement. The statement cannot be
      * re-used anymore.
      */
-    abstract protected function _close(): void;
+    abstract protected function _close();
 
     /**
      * Returns the number of affected rows in case of an INSERT, UPDATE
@@ -208,7 +207,7 @@ abstract class Statement implements IteratorAggregate
     /**
      * Resets this statement so that it can be re-used again.
      */
-    public function reset(): void
+    public function reset()
     {
         $this->m_position = false;
         $this->m_latestParams = null;
@@ -221,7 +220,7 @@ abstract class Statement implements IteratorAggregate
      * Frees all resources after which this statement cannot be used anymore.
      * If you want to re-use the statement, use the Statement::reset() method.
      */
-    public function close(): void
+    public function close()
     {
         $this->m_position = false;
         $this->m_latestParams = null;
@@ -235,9 +234,8 @@ abstract class Statement implements IteratorAggregate
      * NOTE:
      * Depending on the database driver, using this method might result in the
      * query to be executed again.
-     * @throws StatementException
      */
-    public function rewind(): void
+    public function rewind()
     {
         if ($this->_getLatestParams() === null) {
             throw new StatementException('Statement has not been executed yet.', StatementException::STATEMENT_NOT_EXECUTED);
@@ -256,7 +254,7 @@ abstract class Statement implements IteratorAggregate
      *
      * @throws StatementException on Missing bind parameter
      */
-    protected function _validateParams($params): void
+    protected function _validateParams($params)
     {
         foreach ($this->_getBindPositions() as $position => $param) {
             if (!array_key_exists($param, $params)) {
@@ -269,9 +267,8 @@ abstract class Statement implements IteratorAggregate
      * Executes the statement.
      *
      * @param array $params bind parameters
-     * @throws StatementException
      */
-    public function execute(array $params = []): void
+    public function execute(array $params = array())
     {
         $this->reset();
         $this->_validateParams($params);
@@ -283,11 +280,11 @@ abstract class Statement implements IteratorAggregate
     /**
      * Fetches the next row from the result set.
      *
-     * @return array|false next row or false if there are no more rows
-     *@throws StatementException
+     * @throws StatementException
      *
+     * @return mixed next row or false if there are no more rows
      */
-    public function fetch(): array|false
+    public function fetch()
     {
         if ($this->_getLatestParams() === null) {
             throw new StatementException('Statement has not been executed yet.', StatementException::STATEMENT_NOT_EXECUTED);
@@ -310,9 +307,8 @@ abstract class Statement implements IteratorAggregate
      * result in the query to be executed multiple times.
      *
      * @return StatementIterator iterator
-     * @throws StatementException
      */
-    public function getIterator(): Traversable
+    public function getIterator()
     {
         $this->rewind();
 
@@ -326,10 +322,9 @@ abstract class Statement implements IteratorAggregate
      * Depending on the database driver, using this method multiple times might
      * result in the query to be executed multiple times.
      *
-     * @return array|null row
-     * @throws StatementException
+     * @return array row
      */
-    public function getFirstRow(): ?array
+    public function getFirstRow()
     {
         $this->rewind();
 

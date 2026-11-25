@@ -59,7 +59,7 @@ class CalculatorAttribute extends Attribute
      * @param int $flags Flags of the attribute.
      * @param string $calculation The calculation to perform. Must be a valid php expression.
      */
-    public function __construct($name, $flags, $calculation)
+    public function __construct($name, $flags = 0, $calculation)
     {
         $flags = $flags | self::AF_NO_SORT | self::AF_HIDE_SEARCH | self::AF_READONLY;
         parent::__construct($name, $flags);
@@ -112,12 +112,12 @@ class CalculatorAttribute extends Attribute
     /**
      * Returns a displayable string for this value, to be used in HTML pages.
      *
-     * @param array<string, mixed> $record The record that holds the value for this attribute
+     * @param array $record The record that holds the value for this attribute
      * @param string $mode The display mode.
      *
      * @return string HTML String
      */
-    public function display(array $record, string $mode): string
+    public function display($record, $mode)
     {
         if ($this->m_ownerInstance->m_partial == 'attribute.'.$this->fieldName().'.refresh') {
             $record[$this->fieldName()] = $this->load($this->m_ownerInstance->getDb(), $record, $mode);

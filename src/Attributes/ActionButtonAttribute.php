@@ -3,7 +3,6 @@
 namespace Sintattica\Atk\Attributes;
 
 use Sintattica\Atk\Core\Atk;
-use Sintattica\Atk\Core\Node;
 use Sintattica\Atk\Core\Tools;
 use Sintattica\Atk\Session\SessionManager;
 
@@ -12,7 +11,6 @@ class ActionButtonAttribute extends ButtonAttribute
     private $node = '';
     private $action = '';
     private $params = [];
-    private $paramsFieldNames = [];
     private $target = null;
     private $sessionStatus = SessionManager::SESSION_NESTED;
     private $saveForm = false;
@@ -22,7 +20,7 @@ class ActionButtonAttribute extends ButtonAttribute
         parent::__construct($name, $flags | self::AF_HIDE_LIST | self::AF_READONLY);
     }
 
-    public function display(array $record, string $mode): string
+    public function display($record, $mode)
     {
         $classes = implode(' ', $this->m_cssclasses);
         $tranlatedText = $this->text($this->m_text);
@@ -30,19 +28,10 @@ class ActionButtonAttribute extends ButtonAttribute
         $targetNode = Atk::getInstance()->atkGetNode($this->node);
         $action = $this->action;
         if ($action === 'edit' and !$targetNode->allowed('edit')) {
-            // action edit but user has not access rights: goes to view page
+            // action edit ma l'utente non ha i permessi: mando in view
             $action = 'view';
         }
-        if (!isset($this->params[Node::PARAM_ATKSELECTOR])) {
-            $this->params[Node::PARAM_ATKSELECTOR] = $targetNode->getPrimaryKey($record);
-        }
-        if ($this->paramsFieldNames){
-            // params mapped to record field
-            foreach ($this->paramsFieldNames as $fieldName) {
-                $this->params[$fieldName] = $record[$fieldName] ?? null;
-            }
-        }
-
+        $this->params['atkselector'] = $targetNode->getPrimaryKey($record);
         $url = Tools::dispatch_url($this->node, $action, $this->params);
         $extraProps = [];
         if ($classes) {
@@ -54,19 +43,19 @@ class ActionButtonAttribute extends ButtonAttribute
         return Tools::href($url, $tranlatedText, $this->sessionStatus, $this->saveForm, implode(' ', $extraProps));
     }
 
-    public function addParam(string $key, $value): self
+    public function addParam($key, $value): self
     {
         $this->params[$key] = $value;
         return $this;
     }
 
-    public function addParams(array $params = []): self
+    public function addParams($params = []): self
     {
         $this->params = array_merge($this->params, $params);
         return $this;
     }
 
-    public function setParams(array $params = []): self
+    public function setParams($params = []): self
     {
         $this->params = $params;
         return $this;
@@ -75,12 +64,6 @@ class ActionButtonAttribute extends ButtonAttribute
     public function getParams(): array
     {
         return $this->params;
-    }
-
-    public function addParamFieldName(string $fieldName): self
-    {
-        $this->paramsFieldNames[] = $fieldName;
-        return $this;
     }
 
     public function getNode(): string
@@ -94,12 +77,12 @@ class ActionButtonAttribute extends ButtonAttribute
         return $this;
     }
 
-    public function getAction(): ?string
+    public function getAction(): string
     {
         return $this->action;
     }
 
-    public function setAction(string $action): self
+    public function setAction($action): self
     {
         $this->action = $action;
         return $this;
@@ -110,7 +93,7 @@ class ActionButtonAttribute extends ButtonAttribute
         return $this->target;
     }
 
-    public function setTarget(string $target): self
+    public function setTarget($target): self
     {
         $this->target = $target;
         return $this;

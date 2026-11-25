@@ -7,9 +7,9 @@ use Sintattica\Atk\Core\Tools;
 /**
  * The HtmlAttribute class is the same as a normal Attribute. It only
  * (has a different display function. For this attribute, the value is
- * rendered as-is, which means you can use html codes in the text).
+ * rendered as-is, which means you can use html codes in the text.
  *
- * There might be times when you want the user to be able to use html tags,
+ * There might me times where you want the user to be able to use html tags,
  * but you don't want to have the inconvenience of using br's for each line.
  * For this reason the constructor accepts a parameter which tells it to do
  * a newline-to-br conversion.
@@ -18,47 +18,53 @@ use Sintattica\Atk\Core\Tools;
  */
 class HtmlAttribute extends TextAttribute
 {
+
     private $previewSkipFilteringHTMLTags = "<a><p><br>";
 
-    private $stripTagsEnabled = true;
 
+    /**
+     * Constructor.
+     *
+     * @param string $name Name of the attribute
+     * @param int $flags Flags of the attribute
+     * @param bool $nl2br nl2br boolean
+     */
     public function __construct($name, $flags = 0, $nl2br = false)
     {
         parent::__construct($name, $flags);
         $this->setNl2br($nl2br);
     }
 
-    public function display(array $record, string $mode): string
+    public function display($record, $mode)
     {
         $record[$this->fieldName()] = Tools::atkArrayNvl($record, $this->fieldName(), '');
 
-        if ($this->stripTagsEnabled && $this->getDisplayMode() !== self::MODE_SCROLL && $mode === 'list') {
-            $record[$this->fieldName()] = strip_tags($record[$this->fieldName()], $this->previewSkipFilteringHTMLTags);
+        if ($this->getDisplayMode() !== self::MODE_SCROLL && $mode === 'list') {
+            $record[$this->fieldName()] = strip_tags($record[$this->fieldName()], '<a><p><br>');
         }
 
         return parent::display($record, $mode);
     }
 
+
+    /**
+     * @return string
+     */
     public function getPreviewSkipFilteringHTMLTags(): string
     {
         return $this->previewSkipFilteringHTMLTags;
     }
 
-    public function setPreviewSkipFilteringHTMLTags(array $skipTags = []): self
+    /**
+     * @param array $skipTags
+     * @return HtmlAttribute
+     */
+    public function setPreviewSkipFilteringHTMLTags(array $skipTags): self
     {
-        $this->previewSkipFilteringHTMLTags = $skipTags ? implode('', $skipTags) : '';
+        foreach ($skipTags as $tag) {
+            $this->previewSkipFilteringHTMLTags .= $tag;
+        }
 
-        return $this;
-    }
-
-    public function isStripTagsEnabled(): bool
-    {
-        return $this->stripTagsEnabled;
-    }
-
-    public function setStripTagsEnabled(bool $stripTagsEnabled): self
-    {
-        $this->stripTagsEnabled = $stripTagsEnabled;
         return $this;
     }
 }

@@ -13,36 +13,31 @@ class ButtonAttribute extends DummyAttribute
 
     public function __construct($name, $flags = 0)
     {
+        $this->m_text = $name;
         $this->addCSSClasses(['btn', 'btn-sm', 'btn-default']);
-        parent::__construct($name, $flags | self::AF_HIDE_LIST | self::AF_HIDE_VIEW | self::AF_HIDE_ADD | self::AF_READONLY, $name);
+        parent::__construct($name, $flags | self::AF_HIDE_LIST | self::AF_HIDE_VIEW | self::AF_HIDE_ADD | self::AF_READONLY);
     }
 
     /**
      * @param string $uiState
-     * @return ButtonAttribute
      */
-    public function setUIState(string $uiState): self
+    public function setUIState(string $uiState)
     {
         if (in_array($uiState, UIStateColors::getAllUIStates())) {
             $this->removeUIState($this->currentState);
             $this->currentState = $uiState;
             $this->addCSSClass("btn-$uiState");
         }
-
-        return $this;
     }
 
     /**
      * @param string $uiState
-     * @return ButtonAttribute
      */
-    public function removeUIState(string $uiState): self
+    public function removeUIState(string $uiState)
     {
         if (in_array($uiState, UIStateColors::getAllUIStates())) {
             $this->currentState = UIStateColors::STATE_DEFAULT;
             $this->removeCSSClass("btn-$uiState");
         }
-
-        return $this;
     }
 }

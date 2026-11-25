@@ -27,13 +27,14 @@ class ExcelCsvRecordList extends CustomRecordList
      * @param bool $decode Should data be decoded or not (for exports)
      */
     public function render(
-        &$node,
+        $node,
         $recordset,
         $compression = '',
         $suppressList = '',
         $outputparams = [],
         $titlerow = true,
-        $decode = false
+        $decode = false,
+        ...$unused // keeps the signature compatible with CustomRecordList::render() under PHP 8
     ) {
         parent::render($node, $recordset, '', '"', '"', "\n", '1', $compression, $suppressList, $outputparams, 'csv', $titlerow, $decode, ';',
             $this->lfreplace);

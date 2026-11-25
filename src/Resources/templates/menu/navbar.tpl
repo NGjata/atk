@@ -1,10 +1,9 @@
 <div class="main-header navbar navbar-expand {$main_header_classes}">
 
     <!-- Left navbar links -->
-    <ul class="navbar-nav navbar-left">
-
+    <ul class="navbar-nav">
         <!-- Minimize Sidebar Button -->
-        <li class="nav-item nav-minimize-sidebar">
+        <li class="nav-item">
             <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
         </li>
 
@@ -13,7 +12,7 @@
     </ul>
 
     <!-- Right navbar links -->
-    <ul class="navbar-nav navbar-right ml-auto">
+    <ul class="navbar-nav ml-auto">
         {$menu['right']}
 
         <li class="nav-item d-none">
@@ -24,48 +23,3 @@
 
     </ul>
 </div>
-
-
-<script>
-
-    //Check if element is hovered
-    const isHover = e => e.parentElement.querySelector(':hover') === e;
-    let lastHoveredElement = null;
-    document.addEventListener('mousemove', function checkHover(evt) {
-        const menuDropdownItem = evt.target.closest(".dropdown-item");
-        if (menuDropdownItem != lastHoveredElement && menuDropdownItem != null) {
-            parentItem = menuDropdownItem.parentElement;
-            siblingMenu = menuDropdownItem.parentElement.querySelector(".dropdown-menu");
-            if (siblingMenu != null && parentItem != null) {
-                lastHoveredElement = menuDropdownItem;
-
-                //Get parent distance from the right edge of the screen
-                const parentDistanceFromRight = window.innerWidth - parentItem.getBoundingClientRect().right;
-
-                //Get siblingMenu width
-                const siblingMenuWidth = siblingMenu.getBoundingClientRect().width;
-
-                //If the parent is too close to the right edge of the screen
-                const childHasNoSpaceOnRight = parentDistanceFromRight < siblingMenuWidth;
-                if (childHasNoSpaceOnRight) {
-                    //Move the menu to the left
-                    siblingMenu.style.left = -siblingMenuWidth + "px";
-                    siblingMenu.style.top = "0";
-                }
-
-                //If the parent is too close to the left edge of the screen and there is no space on the right, show it in the bottom
-                const childHasNoSpaceOnTheLeft = parentItem.getBoundingClientRect().left < siblingMenuWidth;
-                if (childHasNoSpaceOnTheLeft && childHasNoSpaceOnRight) {
-                    siblingMenu.style.top = "100%";
-                    siblingMenu.style.left = "30px";
-                }
-
-                //If the parent has space on the right, show the menu on the right
-                if (!childHasNoSpaceOnRight && !childHasNoSpaceOnTheLeft) {
-                    siblingMenu.style.left = "100%";
-                    siblingMenu.style.top = "0";
-                }
-            }
-        }
-    });
-</script>

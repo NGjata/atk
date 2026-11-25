@@ -2,7 +2,6 @@
 
 namespace Sintattica\Atk\Attributes;
 
-use Exception;
 use Sintattica\Atk\Core\Config;
 use Sintattica\Atk\Core\Tools;
 use Sintattica\Atk\DataGrid\DataGrid;
@@ -26,8 +25,6 @@ class DateAttribute extends Attribute
     const AF_DATE_DISPLAY_DAY = 268435456; // Show the day of the week in the display
     const AF_DATE_EDIT_NO_DAY = 536870912; // Don't display the day of the week in edit mode
     const AF_DATE_DEFAULT_EMPTY = 1073741824; // Display butons to clear and 'touch' date
-
-    const FROM_TO_VALUES_SEPARATOR = '-'; // separator used in datagrid search to simulate from/to values
 
     /**
      * Possible values for sorting the year dropdown.
@@ -223,6 +220,7 @@ class DateAttribute extends Attribute
      */
     public function __construct($name, $flags = 0, $format_edit = '', $format_view = '', $min = 0, $max = 0)
     {
+
         /* edit and display date format */
         $this->setFormatEdit($format_edit);
         $this->setFormatView($format_view);
@@ -234,7 +232,7 @@ class DateAttribute extends Attribute
         /* base class constructor */
         parent::__construct($name, $flags);
 
-        if ($this->hasFlag(self::AF_OBLIGATORY) && $this->hasFlag(self::AF_DATE_DEFAULT_EMPTY)) {
+        if($this->hasFlag(self::AF_OBLIGATORY) && $this->hasFlag(self::AF_DATE_DEFAULT_EMPTY)){
             $this->addFlag(self::AF_DATE_EMPTYFIELD);
         }
     }
@@ -353,65 +351,58 @@ class DateAttribute extends Attribute
         $id = $this->getHtmlId($fieldprefix);
         $name = $this->getHtmlName($fieldprefix);
 
-        return $this->draw($id, $name, $record, $fieldprefix, '', $mode, $this->hasFlag(self::AF_OBLIGATORY));
+        return $this->draw($record, $id, $name, $fieldprefix, '', $mode, $this->hasFlag(self::AF_OBLIGATORY));
     }
 
     /**
      * Renders a year dropdown or text box.
      *
-     * @param string $fieldId
-     * @param string $fieldName current fieldname
-     * @param string $onChangeScript onchange script
-     * @param array $currentDate current array
+     * @param string $fieldid
+     * @param string $fieldname current fieldname
+     * @param string $str_script onchange script
+     * @param array $current current array
      * @param string $format current format
      * @param bool $obligatory
-     * @param string $extraClass
+     *
      * @return string
      */
-    protected function renderYear(string $fieldId, string $fieldName, string $onChangeScript, array $currentDate, string $format, bool $obligatory, string $extraClass = ''): string
+    protected function renderYear($fieldid, $fieldname, $str_script, $current, $format, $obligatory)
     {
         $result = '';
         $emptyfield = null;
-        $defaultClass = 'atkdateattribute form-control form-control-sm';
-        if ($extraClass !== '') {
-            $defaultClass .= " $extraClass";
-        }
-
         /* date must be within specified (default: 25) years */
-        if (!empty($currentDate['y_max']) && !empty($currentDate['y_min']) && $currentDate['y_max'] - $currentDate['y_min'] <= $this->m_maxyears) {
-            // select2 field
-            $result .= '<select id="' . $fieldId . '[year]" name="' . $fieldName . '[year]" class="' . $defaultClass . ' select-standard" onChange="' . $onChangeScript . '">';
+        if (!empty($current['y_max']) && !empty($current['y_min']) && $current['y_max'] - $current['y_min'] <= $this->m_maxyears) {
+            $result .= '<select id="'.$fieldid.'[year]" name="'.$fieldname.'[year]" class="atkdateattribute form-control form-control-sm select-standard" onChange="'.$str_script.'">';
             if (!$obligatory || $this->hasFlag(self::AF_DATE_EMPTYFIELD)) {
-                $result .= '<option value="0"' . ($currentDate === null ? ' selected' : '') . '></option>';
+                $result .= '<option value="0"'.($current === null ? ' selected' : '').'></option>';
             }
 
-            if (empty($currentDate['mon']) && !$emptyfield) {
-                $currentDate['mon'] = 1;
+            if (empty($current['mon']) && !$emptyfield) {
+                $current['mon'] = 1;
             }
-            if (empty($currentDate['mday']) && !$emptyfield) {
-                $currentDate['mday'] = 1;
+            if (empty($current['mday']) && !$emptyfield) {
+                $current['mday'] = 1;
             }
 
             if ($this->m_year_sorting == self::SORT_YEAR_DESC) {
-                for ($j = $currentDate['y_max']; $j >= $currentDate['y_min']; --$j) {
-                    $tmp_date = adodb_getdate(adodb_mktime(0, 0, 0, $currentDate['mon'], $currentDate['mday'], $j));
+                for ($j = $current['y_max']; $j >= $current['y_min']; --$j) {
+                    $tmp_date = adodb_getdate(adodb_mktime(0, 0, 0, $current['mon'], $current['mday'], $j));
                     $str_year = $this->formatDate($tmp_date, $format);
-                    $result .= '<option value="' . $j . '" ' . ($currentDate !== null && $j == $currentDate['year'] ? 'selected' : '') . '>' . $str_year . '</option>';
+                    $result .= '<option value="'.$j.'" '.($current !== null && $j == $current['year'] ? 'selected' : '').'>'.$str_year.'</option>';
                 }
             } else {
-                for ($j = $currentDate['y_min']; $j <= $currentDate['y_max']; ++$j) {
-                    $tmp_date = adodb_getdate(adodb_mktime(0, 0, 0, $currentDate['mon'], $currentDate['mday'], $j));
+                for ($j = $current['y_min']; $j <= $current['y_max']; ++$j) {
+                    $tmp_date = adodb_getdate(adodb_mktime(0, 0, 0, $current['mon'], $current['mday'], $j));
                     $str_year = $this->formatDate($tmp_date, $format);
-                    $result .= '<option value="' . $j . '" ' . ($currentDate !== null && $j == $currentDate['year'] ? 'selected' : '') . '>' . $str_year . '</option>';
+                    $result .= '<option value="'.$j.'" '.($current !== null && $j == $current['year'] ? 'selected' : '').'>'.$str_year.'</option>';
                 }
             }
 
             $result .= '</select>';
-            $this->m_yeardropdown = true;
 
-        } else {
-            /* input field */
-            $result .= '<input type="text" id="' . $fieldId . '[year]" name="' . $fieldName . '[year]" class="' . $defaultClass . '" size="8" maxlength="4" onChange="' . $onChangeScript . '" value="' . (isset($currentDate['year']) ? $currentDate['year'] : '') . '">';
+            $this->m_yeardropdown = true;
+        } /* normal input box */ else {
+            $result .= '<input type="text" id="'.$fieldid.'[year]" name="'.$fieldname.'[year]" class="atkdateattribute form-control form-control-sm" size="8" maxlength="4" onChange="'.$str_script.'" value="'.(isset($current['year']) ? $current['year'] : '').'">';
         }
 
         return $result;
@@ -426,36 +417,32 @@ class DateAttribute extends Attribute
      * @param array $current current array
      * @param string $format current format
      * @param bool $obligatory
-     * @param string $extraClass
+     *
      * @return string
      */
-    protected function renderMonth(string $fieldid, string $fieldname, string $str_script, array $current, string $format, bool $obligatory, string $extraClass = ''): string
+    protected function renderMonth($fieldid, $fieldname, $str_script, $current, $format, $obligatory)
     {
-        $fieldHtmlId = $fieldid . '[month]';
-        $defaultClass = 'atkdateattribute form-control form-control-sm';
-        if ($extraClass !== '') {
-            $defaultClass .= " $extraClass";
-        }
+        $fieldHtmlId = $fieldid.'[month]';
 
-        $result = '<select id="' . $fieldHtmlId . '" name="' . $fieldname . '[month]" data-no-search class="' . $defaultClass . ' select-standard" onChange="' . $str_script . '">';
+        $result = '<select id="'.$fieldHtmlId.'" name="'.$fieldname.'[month]" data-no-search class="atkdateattribute form-control form-control-sm select-standard" onChange="'.$str_script.'">';
         if (!$obligatory || $this->hasFlag(self::AF_DATE_EMPTYFIELD)) {
-            $result .= '<option value=""' . ($current === null ? ' selected' : '') . '></option>';
+            $result .= '<option value=""'.($current === null ? ' selected' : '').'></option>';
         }
         if (!$this->m_simplemode) {
             for ($j = $current['m_min']; $j <= $current['m_max']; ++$j) {
-                $tmp_date = adodb_getdate(adodb_mktime(0, 0, 0, $j, 1, ($current['year'] ?? 0)));
+                $tmp_date = adodb_getdate(adodb_mktime(0, 0, 0, $j, 1, (isset($current['year']) ? $current['year'] : 0)));
                 $str_month = $this->formatDate($tmp_date, $format);
-                $result .= '<option value="' . $j . '" ' . (isset($current['mon']) && $j == $current['mon'] ? 'selected' : '') . '>' . $str_month . '</option>';
+                $result .= '<option value="'.$j.'" '.(isset($current['mon']) && $j == $current['mon'] ? 'selected' : '').'>'.$str_month.'</option>';
             }
         } else {
             for ($j = 1; $j <= 12; ++$j) {
-                $result .= '<option value="' . $j . '" ' . ($current !== null && $j == $current['mon'] ? 'selected' : '') . '>' . sprintf('%02d', $j) . '</option>';
+                $result .= '<option value="'.$j.'" '.($current !== null && $j == $current['mon'] ? 'selected' : '').'>'.sprintf('%02d', $j).'</option>';
             }
         }
         $result .= '</select>';
 
         //Todo: Fix the fact that html id cannot contain the '[' or ']' chars -> this is horrible!!!
-        $escapedFieldHtmlId = $fieldid . '\\\\[month\\\\]';
+        $escapedFieldHtmlId = $fieldid.'\\\\[month\\\\]';
 
         $result .= "<script>ATK.Tools.enableSelect2ForSelect('#$escapedFieldHtmlId');</script>";
 
@@ -471,47 +458,42 @@ class DateAttribute extends Attribute
      * @param array $current current array
      * @param string $format current format
      * @param bool $obligatory
-     * @param string|null $weekdayFormat
-     * @param string $extraClass
+     * @param string $weekdayFormat
+     *
      * @return string
-     */
-    protected function renderDay(string $fieldid, string $fieldname, string $str_script, array $current, string $format, bool $obligatory, string $weekdayFormat = null, string $extraClass = ''): string
+     * */
+    protected function renderDay($fieldid, $fieldname, $str_script, $current, $format, $obligatory, $weekdayFormat)
     {
-        $c_mon = $current['mon'] ?? null;
-        $c_year = $current['year'] ?? null;
-        $c_dmin = $current['d_min'] ?? null;
-        $c_dmax = $current['d_max'] ?? null;
-        $c_mday = $current['mday'] ?? null;
+        $c_mon = isset($current['mon']) ? $current['mon'] : null;
+        $c_year = isset($current['year']) ? $current['year'] : null;
+        $c_dmin = isset($current['d_min']) ? $current['d_min'] : null;
+        $c_dmax = isset($current['d_max']) ? $current['d_max'] : null;
+        $c_mday = isset($current['mday']) ? $current['mday'] : null;
 
-        $defaultClass = 'atkdateattribute form-control form-control-sm';
-        if ($extraClass !== '') {
-            $defaultClass .= " $extraClass";
-        }
-
-        $result = '<select id="' . $fieldid . '[day]" name="' . $fieldname . '[day]" data-no-search class="' . $defaultClass . ' select-standard" onChange="' . $str_script . '">';
+        $result = '<select id="'.$fieldid.'[day]" name="'.$fieldname.'[day]" data-no-search class="atkdateattribute form-control form-control-sm select-standard atk-date-left" onChange="'.$str_script.'">';
         if (!$obligatory || $this->hasFlag(self::AF_DATE_EMPTYFIELD)) {
-            $result .= '<option value=""' . ($current === null ? ' selected' : '') . '></option>';
+            $result .= '<option value=""'.($current === null ? ' selected' : '').'></option>';
         }
         if (!$this->m_simplemode) {
             for ($j = $c_dmin; $j <= $c_dmax; ++$j) {
                 $tmp_date = adodb_getdate(adodb_mktime(0, 0, 0, $c_mon, $j, $c_year));
                 if (($c_year != '') && ($c_mon != '')) {
-                    $str_day = $this->formatDate($tmp_date, (empty($weekdayFormat) ? $format : "$weekdayFormat $format"),
+                    $str_day = $this->formatDate($tmp_date, (empty($weekdayFormat) ? $format : "$weekdayFormat {$format}"),
                         !$this->hasFlag(self::AF_DATE_EDIT_NO_DAY));
                 } else {
-                    $str_day = $this->formatDate($tmp_date, (empty($weekdayFormat) ? $format : "$weekdayFormat $format"), 0);
+                    $str_day = $this->formatDate($tmp_date, (empty($weekdayFormat) ? $format : "$weekdayFormat {$format}"), 0);
                 }
-                $result .= '<option value="' . $j . '" ' . ($current !== null && $j == $c_mday ? 'selected' : '') . '>' . $str_day . '</option>';
+                $result .= '<option value="'.$j.'" '.($current !== null && $j == $c_mday ? 'selected' : '').'>'.$str_day.'</option>';
             }
         } else {
             for ($j = 1; $j <= 31; ++$j) {
-                $result .= '<option value="' . $j . '" ' . ($current !== null && $j == $c_mday ? 'selected' : '') . '>' . sprintf('%02d', $j) . '</option>';
+                $result .= '<option value="'.$j.'" '.($current !== null && $j == $c_mday ? 'selected' : '').'>'.sprintf('%02d', $j).'</option>';
             }
         }
         $result .= '</select>';
 
         //Todo: Fix the fact that html id cannot contain the '[' or ']' chars -> this is horrible!!!
-        $escapedFieldHtmlId = $fieldid . '\\\\[day\\\\]';
+        $escapedFieldHtmlId = $fieldid.'\\\\[day\\\\]';
 
         $result .= "<script>ATK.Tools.enableSelect2ForSelect('#$escapedFieldHtmlId');</script>";
 
@@ -525,18 +507,17 @@ class DateAttribute extends Attribute
      * @todo We can't show a calendar when we have a year dropdown?
      * @todo The calendar doesn't use the min/max values?
      *
+     * @param array $record Array with 3 fields (year, month, day)
      * @param string $id html id
      * @param string $name html name
-     * @param array $record Array with 3 fields (year, month, day)
      * @param string $fieldprefix The fieldprefix
      * @param string $postfix
      * @param string $mode The mode ('add' or 'edit')
      * @param bool $obligatory Is this field obligatory or not
      *
-     * @return string Piece an of HTML Code
-     * @throws Exception
+     * @return string Piece a of HTML Code
      */
-    public function draw($id, $name, $record = [], $fieldprefix = '', $postfix = '', $mode = '', $obligatory = false)
+    public function draw($record = [], $id, $name, $fieldprefix = '', $postfix = '', $mode = '', $obligatory = false)
     {
         $result = '';
 
@@ -551,7 +532,7 @@ class DateAttribute extends Attribute
             self::registerScriptsAndStyles(!$this->hasFlag(self::AF_DATE_NO_CALENDAR));
         }
 
-        $fieldname = $name . $postfix;
+        $fieldname = $name.$postfix;
 
         /* text mode? */
         if ($this->hasFlag(self::AF_DATE_STRING) || $mode == 'list') {
@@ -565,8 +546,8 @@ class DateAttribute extends Attribute
                 $value = '';
             }
 
-            $fieldname = $fieldname . '[date]';
-            $result = '<input type="text" id="' . $id . '" class="atkdateattribute form-control form-control-sm" name="' . $fieldname . '" value="' . $value . '">';
+            $fieldname = $fieldname.'[date]';
+            $result = '<input type="text" id="'.$id.'" class="atkdateattribute form-control" name="'.$fieldname.'" value="'.$value.'">';
 
             if (!$this->hasFlag(self::AF_DATE_NO_CALENDAR) && $mode != 'list') {
                 $format = str_replace(array('y', 'Y', 'm', 'n', 'j', 'd'), array('yy', 'y', 'mm', 'm', 'd', 'dd'), $this->m_date_format_edit);
@@ -574,13 +555,13 @@ class DateAttribute extends Attribute
                 if (is_bool(Tools::atktext('date_monday_first'))) {
                     $mondayFirst = Tools::atktext('date_monday_first') === true ? 'true' : $mondayFirst;
                 }
-                $result .= ' <input ' . $this->getCSSClassAttribute([
+                $result .= ' <input '.$this->getCSSClassAttribute([
                         'btn',
                         'btn-sm',
                         'btn-default',
                         'button',
                         'atkbutton',
-                    ]) . ' type="button" value="..." onclick="return showCalendar(\'' . $id . '\', \'' . $id . '\', \'' . $format . '\', false, ' . $mondayFirst . ');">';
+                    ]).' type="button" value="..." onclick="return showCalendar(\''.$id.'\', \''.$id.'\', \''.$format.'\', false, '.$mondayFirst.');">';
             }
 
             return $result;
@@ -653,14 +634,14 @@ class DateAttribute extends Attribute
             $str_script = '';
             if (Tools::count($this->m_onchangecode)) {
                 $this->_renderChangeHandler($fieldprefix);
-                $str_script = $this->getHtmlId($fieldprefix) . '_onChange(this);';
+                $str_script = $this->getHtmlId($fieldprefix).'_onChange(this);';
             }
 
-            $result = '<select id="' . $id . '" name="' . $fieldname . '" onChange="' . $str_script . '" class="form-control form-control-sm select-standard">';
+            $result = '<select id="'.$id.'" name="'.$fieldname.'" onChange="'.$str_script.'" class="form-control form-control-sm select-standard">';
             for ($i = $str_min; $i <= $str_max; ++$i) {
                 $tmp_date = adodb_getdate(adodb_mktime(0, 0, 0, substr($i, 4, 2), substr($i, 6, 2), substr($i, 0, 4)));
-                $result .= '<option value="' . $i . '"' . ($current !== null && $tmp_date[0] == $current[0] ? ' selected' : '') . '>' . $this->formatDate($tmp_date,
-                        $str_format, !$this->hasFlag(self::AF_DATE_EDIT_NO_DAY)) . '</option>';
+                $result .= '<option value="'.$i.'"'.($current !== null && $tmp_date[0] == $current[0] ? ' selected' : '').'>'.$this->formatDate($tmp_date,
+                        $str_format, !$this->hasFlag(self::AF_DATE_EDIT_NO_DAY)).'</option>';
             }
             $result .= '</select>';
 
@@ -677,13 +658,13 @@ class DateAttribute extends Attribute
             }
         }
 
-        $info = [
+        $info = array(
             'format' => $str_format,
             'min' => $str_min,
             'max' => $str_max,
             'emptyfield' => $emptyfield,
             'weekday' => !$this->hasFlag(self::AF_DATE_EDIT_NO_DAY),
-        ];
+        );
 
         if (!$this->m_simplemode) {
             $result .= '<div class="DateAttribute align-top d-inline-block"><script>var atkdateattribute_' . $id . ' = ' . Json::encode($info) . ';</script>';
@@ -693,51 +674,32 @@ class DateAttribute extends Attribute
         $weekdayFormat = null;
         $str_script = '';
         $result .= "<div class='atk-date-group'>";
-
-        $numDateWidgetToRender = $this->getNumWidgetToRender($str_format);
-
         for ($i = 0; $i < strlen($str_format); ++$i) {
             /* javascript method */
             if (!$this->m_simplemode) {
-                $str_script = "ATK.DateAttribute.adjustDate(this, '" . $id . "');";
-            }
-
-            if ($numDateWidgetToRender === 1) {
-                $extraClass = 'atk-date-single-item';
-
-            } else {
-                if ($i === 0) {
-                    $extraClass = 'atk-date-left';
-                } elseif ($i === $numDateWidgetToRender - 1 && $this->hasFlag(self::AF_DATE_NO_CALENDAR)) {
-                    $extraClass = 'atk-date-right';
-                } else {
-                    $extraClass = '';
-                }
+                $str_script = "ATK.DateAttribute.adjustDate(this, '".$id."');";
             }
 
             if (Tools::count($this->m_onchangecode)) {
                 $this->_renderChangeHandler($fieldprefix);
-                $str_script .= $this->getHtmlId($fieldprefix) . '_onChange(this);';
+                $str_script .= $this->getHtmlId($fieldprefix).'_onChange(this);';
             }
 
+            /* year input box */
             if ($str_format[$i] == 'y' || $str_format[$i] == 'Y') {
-                /* year input box */
-                $result .= $this->renderYear($id, $fieldname, $str_script, $current, $str_format[$i], $obligatory, $extraClass);
-            } elseif ($str_format[$i] == 'D' || $str_format[$i] == 'l') {
-                /* weekday format */
+                $result .= $this->renderYear($id, $fieldname, $str_script, $current, $str_format[$i], $obligatory);
+            } /* weekday format */ elseif ($str_format[$i] == 'D' || $str_format[$i] == 'l') {
                 $weekdayFormat = $str_format[$i];
-            } elseif ($str_format[$i] == 'j' || $str_format[$i] == 'd') {
-                /* day input box */
-                $result .= $this->renderDay($id, $fieldname, $str_script, $current, $str_format[$i], $obligatory, $weekdayFormat, $extraClass);
-            } elseif ($str_format[$i] == 'm' || $str_format[$i] == 'n' || $str_format[$i] == 'M' || $str_format[$i] == 'F') {
-                /* month input box */
-                $result .= $this->renderMonth($id, $fieldname, $str_script, $current, $str_format[$i], $obligatory, $extraClass);
-            } else {
-                /* other characters */
+            } /* day input box */ elseif ($str_format[$i] == 'j' || $str_format[$i] == 'd') {
+                $result .= $this->renderDay($id, $fieldname, $str_script, $current, $str_format[$i], $obligatory, $weekdayFormat);
+            } /* month input box */ elseif ($str_format[$i] == 'm' || $str_format[$i] == 'n' || $str_format[$i] == 'M' || $str_format[$i] == 'F') {
+                $result .= $this->renderMonth($id, $fieldname, $str_script, $current, $str_format[$i], $obligatory);
+            } /* other characters */ else {
                 $result .= $str_format[$i];
             }
 
         }
+
 
 
         if (!$this->hasFlag(self::AF_DATE_NO_CALENDAR) && !$this->m_yeardropdown && !$this->m_simplemode && $mode != 'list') {
@@ -745,14 +707,14 @@ class DateAttribute extends Attribute
             if (is_bool(Tools::atktext('date_monday_first'))) {
                 $mondayFirst = Tools::atktext('date_monday_first') === true ? 'true' : $mondayFirst;
             }
-            $result .= ' <span ' . $this->getCSSClassAttribute([
+            $result .= ' <span '.$this->getCSSClassAttribute([
                     'atkbutton',
                     'fas fa-calendar-alt',
                     'btn',
                     'btn-sm',
                     'btn-default',
                     'atk-date-right',
-                ]) . ' type="reset" onclick="return showCalendar(\'' . $id . '\', \'' . $id . '[year]\', \'y-mm-dd\', true, ' . $mondayFirst . ');"></span>';
+                ]).' type="reset" onclick="return showCalendar(\''.$id.'\', \''.$id.'[year]\', \'y-mm-dd\', true, '.$mondayFirst.');"></span>';
         }
         $result .= "</div>"; //atk-date-group
 
@@ -868,19 +830,19 @@ class DateAttribute extends Attribute
             }
 
             $page->register_scriptcode('
-          var m_months_long    = Array("' . implode('","', $m_months_long) . '");
-          var m_months_short   = Array("' . implode('","', $m_months_short) . '");
-          var m_weekdays_long  = Array("' . implode('","', $m_weekdays_long) . '");
-          var m_weekdays_short = Array("' . implode('","', $m_weekdays_short) . '");
+          var m_months_long    = Array("'.implode('","', $m_months_long).'");
+          var m_months_short   = Array("'.implode('","', $m_months_short).'");
+          var m_weekdays_long  = Array("'.implode('","', $m_weekdays_long).'");
+          var m_weekdays_short = Array("'.implode('","', $m_weekdays_short).'");
         ', true);
 
-            $page->register_script(Config::getGlobal('assets_url') . 'javascript/dateattribute.js');
+            $page->register_script(Config::getGlobal('assets_url').'javascript/dateattribute.js');
         }
 
         if ($useCalendar) {
-            $page->register_script(Config::getGlobal('assets_url') . 'lib/calendar/calendar.js');
-            $page->register_script(Config::getGlobal('assets_url') . 'lib/calendar/calendar-runner.js');
-            $page->register_script(Config::getGlobal('assets_url') . 'lib/calendar/lang/calendar-' . Config::getGlobal('language') . '.js');
+            $page->register_script(Config::getGlobal('assets_url').'lib/calendar/calendar.js');
+            $page->register_script(Config::getGlobal('assets_url').'lib/calendar/calendar-runner.js');
+            $page->register_script(Config::getGlobal('assets_url').'lib/calendar/lang/calendar-'.Config::getGlobal('language').'.js');
         }
     }
 
@@ -901,10 +863,10 @@ class DateAttribute extends Attribute
 
         if (is_array($field)) {
             foreach ($field as $key => $value) {
-                $result .= '<input type="hidden" name="' . $this->getHtmlName($fieldprefix) . '[' . $key . ']" ' . 'value="' . $value . '">';
+                $result .= '<input type="hidden" name="'.$this->getHtmlName($fieldprefix).'['.$key.']" '.'value="'.$value.'">';
             }
         } else {
-            $result = '<input type="hidden" name="' . $this->getHtmlName($fieldprefix) . '" value="' . $field . '">';
+            $result = '<input type="hidden" name="'.$this->getHtmlName($fieldprefix).'" value="'.$field.'">';
         }
 
         return $result;
@@ -953,35 +915,9 @@ class DateAttribute extends Attribute
         $name = $this->getSearchFieldName($fieldprefix);
 
         $rec = isset($record[$this->fieldName()]['from']) ? array($this->fieldName() => $record[$this->fieldName()]['from']) : $record;
-
-        $res ='<div class="row">';
-
-
-        $res .= '<div class="col"><div class="input-group input-group-sm mt-1 d-flex flex-nowrap">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text">'.Tools::atktext('from').'</span>
-                    </div>';
-
-        $res .= $this->draw($id . '_from', $name, $rec, 'atksearch_AE_' . $fieldprefix, '_AE_from', 'search');
-
-
-        $res .= '</div></div>';
-
-
+        $res = $this->draw($rec, $id.'_from', $name, 'atksearch_AE_'.$fieldprefix, '_AE_from', 'search');
         $rec = isset($record[$this->fieldName()]['to']) ? array($this->fieldName() => $record[$this->fieldName()]['to']) : $record;
-
-
-        $res .= '<div class="col"><div class="input-group input-group-sm mt-1 d-flex flex-nowrap">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text">'. Tools::atktext('until') . '</span>
-                    </div>';
-
-        $res .= $this->draw($id . '_to', $name, $rec, 'atksearch_AE_' . $fieldprefix, '_AE_to', 'search');
-
-        $res .= '</div></div>';
-
-
-        $res .= '</div>';
+        $res .= '<span class="align-middle text-md-center pt-md-2 d-inline-block">&nbsp;' . Tools::atktext('until') . ': </span>' . $this->draw($rec, $id . '_to', $name, 'atksearch_AE_' . $fieldprefix, '_AE_to', 'search');
 
         return $res;
     }
@@ -1013,11 +949,11 @@ class DateAttribute extends Attribute
             // >=: one value followed by "-"
             // <=: one value preceded by "-"
             $value = trim($value);
-            if (strpos($value, self::FROM_TO_VALUES_SEPARATOR) !== false) {
+            if (strpos($value, '-') !== false) {
                 list($from, $to) = explode('-', $value);
-                $value = ['from' => trim($from), 'to' => trim($to)];
+                $value = array('from' => trim($from), 'to' => trim($to));
             } else {
-                $value = ['from' => $value, 'to' => $value];
+                $value = array('from' => $value, 'to' => $value);
             }
             foreach (['from', 'to'] as $k) {
                 if ($v = $value[$k]) {
@@ -1032,7 +968,7 @@ class DateAttribute extends Attribute
                     // m/yyyy
                     if (!is_numeric($v) && substr_count($v, '/') == 1 && (strlen($v) == 6 || strlen($v) == 7)) {
                         // if we always set the day to 31, the framework somewhere modifies the query for months with less than 31 days
-                        // e.g. '2015-09-31' becomes '2015-10-01'
+                        // eg. '2015-09-31' becomes '2015-10-01'
                         $parts = explode('/', $v);
                         $daysInMonth = self::daysInMonth($parts[0], $parts[1]);
                         if ($k == 'from') {
@@ -1043,24 +979,25 @@ class DateAttribute extends Attribute
                     }
                     // d/m
                     if (substr_count($v, '/') == 1) {
-                        $v .= '/' . date('Y');
+                        $v .= '/'.date('Y');
                     }
                     $value[$k] = $v;
                 }
             }
         }
 
-        $valueFrom = $this->fetchValue([$this->fieldName() => $value['from']]);
-        $valueTo = $this->fetchValue([$this->fieldName() => $value['to']]);
+        $valueFrom = $this->fetchValue(array($this->fieldName() => $value['from']));
+        $valueTo = $this->fetchValue(array($this->fieldName() => $value['to']));
 
-        $fromval = $this->value2db([$this->fieldName() => $valueFrom]);
-        $toval = $this->value2db([$this->fieldName() => $valueTo]);
+        $fromval = $this->value2db(array($this->fieldName() => $valueFrom));
+        $toval = $this->value2db(array($this->fieldName() => $valueTo));
 
-        $fieldname = $db->func_datetochar($fieldname ? $fieldname : ($table . '.' . $this->fieldName()));
+        $fieldname = $db->func_datetochar($fieldname ? $fieldname : ($table.'.'.$this->fieldName()));
 
         if ($fromval == null && $toval == null) {
-            // do nothing
-        } else {
+
+        } // do nothing
+        else {
             if ($fromval != null && $toval != null) {
                 if ($fromval > $toval) {
                     // User entered dates in wrong order. Let's put them in the right order.
@@ -1069,19 +1006,15 @@ class DateAttribute extends Attribute
                     $toval = $tmp;
                 }
                 $searchcondition = $query->betweenCondition($fieldname, $fromval, $toval);
-
             } else {
                 if ($fromval != null && $toval == null) {
                     $searchcondition = $query->greaterthanequalCondition($fieldname, $fromval);
-
                 } else {
                     if ($fromval == null && $toval != null) {
                         $searchcondition = $query->lessthanequalCondition($fieldname, $toval);
-
                     } else {
                         if ((is_array($value['from'])) or (is_array($value['to']))) {
                             $searchcondition = $this->_getDateArraySearchCondition($query, $table, $value);
-
                         } else {
                             // plain text search condition
                             $value = $this->_autoCompleteDateString($value);
@@ -1102,19 +1035,19 @@ class DateAttribute extends Attribute
      * it will assume it's a year of the 21th century otherwise
      * (50 or above) it will assume it's a 20th century year.
      *
-     * @param string $value String A date in String format (like 9-12-2005)
-     *
-     * @return string The auto-completed date String
      * @todo make this suitable for other date formats like
      *       YYYY-MM-DD
      * @todo change this code when it's approaching 2050 :-)
      *
+     * @param string $value String A date in String format (like 9-12-2005)
+     *
+     * @return string The auto-completed date String
      */
     public function _autoCompleteDateString($value)
     {
         $elems = explode('-', $value);
 
-        return sprintf('%02d', $elems[0]) . '-' . sprintf('%02d', $elems[1]) . '-' . ($elems[2] < 100 ? ($elems[2] < 50 ? '20' : '19') : '') . sprintf('%02d', $elems[2]);
+        return sprintf('%02d', $elems[0]).'-'.sprintf('%02d', $elems[1]).'-'.($elems[2] < 100 ? ($elems[2] < 50 ? '20' : '19') : '').sprintf('%02d', $elems[2]);
     }
 
     /**
@@ -1136,7 +1069,7 @@ class DateAttribute extends Attribute
         $datearraysearchcondition = '';
 
         if ($fromvalue != '') {
-            $field = $db->func_datetochar($table . '.' . $this->fieldName(), $this->_SetDateFormat($value['from']));
+            $field = $db->func_datetochar($table.'.'.$this->fieldName(), $this->_SetDateFormat($value['from']));
             $datearraysearchcondition = $query->greaterthanequalCondition($field, $fromvalue);
             // check if tovalue is set, if so add the AND
             if ($tovalue != '') {
@@ -1144,7 +1077,7 @@ class DateAttribute extends Attribute
             }
         }
         if ($tovalue != '') {
-            $field = $db->func_datetochar($table . '.' . $this->fieldName(), $this->_SetDateFormat($value['to']));
+            $field = $db->func_datetochar($table.'.'.$this->fieldName(), $this->_SetDateFormat($value['to']));
             $datearraysearchcondition .= $query->lessthanequalCondition($field, $tovalue);
         }
 
@@ -1166,7 +1099,7 @@ class DateAttribute extends Attribute
             $fromvalue .= $value['year'];
         }
         if ($value['year'] != '' && $value['month'] != 0) {
-            $fromvalue .= '-' . sprintf('%02d', $value['month']);
+            $fromvalue .= '-'.sprintf('%02d', $value['month']);
         }
 
         return $fromvalue;
@@ -1196,20 +1129,20 @@ class DateAttribute extends Attribute
     /**
      * Convert date array to database value.
      *
-     * @param array $record database record with a date attribute
+     * @param array $rec database record with a date attribute
      *                   field $rec[{name of the date attribute}]
      *
      * @return string database value for date
      */
-    public function value2db($record): ?string
+    public function value2db($rec): ?string
     {
-        if (!is_array($record[$this->fieldName()])) {
+        if (!is_array($rec[$this->fieldName()])) {
             return null;
         }
 
-        $year = $record[$this->fieldName()]['year'];
-        $month = $record[$this->fieldName()]['month'];
-        $day = $record[$this->fieldName()]['day'];
+        $year = $rec[$this->fieldName()]['year'];
+        $month = $rec[$this->fieldName()]['month'];
+        $day = $rec[$this->fieldName()]['day'];
 
         if (empty($year) || empty($month) || empty($day)) {
             return null;
@@ -1218,27 +1151,27 @@ class DateAttribute extends Attribute
             return null;
         } //one of the fields is left empty
 
-        return $year . '-' . sprintf('%02d', $month) . '-' . sprintf('%02d', $day);
+        return $year.'-'.sprintf('%02d', $month).'-'.sprintf('%02d', $day);
     }
 
     /**
      * Convert database value to date array.
      *
-     * @param array $record database record with date field
+     * @param array $rec database record with date field
      *
      * @return array|null array with 3 fields (year, month, day) or null
      */
-    public function db2value($record)
+    public function db2value($rec)
     {
-        if (!isset($record[$this->fieldName()]) || strlen($record[$this->fieldName()]) == 0 || (int)substr($record[$this->fieldName()], 0, 4) == 0) {
+        if (!isset($rec[$this->fieldName()]) || strlen($rec[$this->fieldName()]) == 0 || (int)substr($rec[$this->fieldName()], 0, 4) == 0) {
             return null;
         }
 
-        return [
-            'year' => substr($record[$this->fieldName()], 0, 4),
-            'month' => substr($record[$this->fieldName()], 5, 2),
-            'day' => substr($record[$this->fieldName()], 8, 2),
-        ];
+        return array(
+            'year' => substr($rec[$this->fieldName()], 0, 4),
+            'month' => substr($rec[$this->fieldName()], 5, 2),
+            'day' => substr($rec[$this->fieldName()], 8, 2),
+        );
     }
 
     /**
@@ -1263,22 +1196,13 @@ class DateAttribute extends Attribute
 
         // array with year / month / day
         if (is_array($value)) {
-            $resultValue = [];
-            foreach (['year', 'month', 'day'] as $field) {
-                if (empty($value[$field])) {
-                    return null;
-                }
-                $resultValue[$field] = $value[$field];
+            if (empty($value['year']) || empty($value['month']) || empty($value['day'])) {
+                return null;
+            } else {
+                return $value;
             }
-
-            // always 2 chars
-            $resultValue['month'] = sprintf('%02d', $resultValue['month']);
-            $resultValue['day'] = sprintf('%02d', $resultValue['day']);
-
-            return $resultValue;
-
-        } else {
-            // text format
+        } // text format
+        else {
             if (!empty($value)) {
                 // maybe we should use strptime in PHP >= 5.1
                 $formats = [];
@@ -1293,12 +1217,11 @@ class DateAttribute extends Attribute
                 $formats[] = str_replace(array('y', 'Y', 'm', 'n', 'F', 'd', 'j'), array('yy', 'yy', 'mm', 'mm', 'mm', 'd', 'd'), $this->m_date_format_edit);
                 $formats[] = str_replace(array('y', 'Y', 'm', 'n', 'F', 'd', 'j'), array('yy', 'yy', 'm', 'm', 'm', 'd', 'd'), $this->m_date_format_edit);
                 $arr = self::parseDate($value, $formats);
-
                 if ($arr['day'] == 0 || $arr['month'] == 0 || $arr['year'] == 0) {
                     return self::dateArray(adodb_date('Ymd', strtotime($value)));
+                } else {
+                    return $arr;
                 }
-
-                return $arr;
             }
         }
 
@@ -1375,7 +1298,7 @@ class DateAttribute extends Attribute
         /* date < minimum */
         if (!empty($minimum) && $current < $minimum) {
             Tools::triggerError($record, $this->fieldName(), 'error_date_minimum',
-                Tools::atktext('error_date_minimum') . ' ' . $this->formatDate(adodb_getdate($minimum), $this->m_date_format_view, 0));
+                Tools::atktext('error_date_minimum').' '.$this->formatDate(adodb_getdate($minimum), $this->m_date_format_view, 0));
 
             return null;
         }
@@ -1383,19 +1306,19 @@ class DateAttribute extends Attribute
         /* date > maximum */
         if (!empty($maximum) && $current > $maximum) {
             Tools::triggerError($record, $this->fieldName(), 'error_date_maximum',
-                Tools::atktext('error_date_maximum') . ' ' . $this->formatDate(adodb_getdate($maximum), $this->m_date_format_view, 0));
+                Tools::atktext('error_date_maximum').' '.$this->formatDate(adodb_getdate($maximum), $this->m_date_format_view, 0));
         }
     }
 
     /**
      * Function display's the date.
      *
-     * @param array<string, mixed> $record array with date
+     * @param array $record array with date
      * @param string $mode
      *
      * @return string formatted date string
      */
-    public function display(array $record, string $mode): string
+    public function display($record, $mode)
     {
         $value = isset($record[$this->fieldName()]) ? $record[$this->fieldName()] : null;
         if (!is_array($value) || empty($value['month']) || empty($value['day']) || empty($value['year'])) {
@@ -1433,7 +1356,7 @@ class DateAttribute extends Attribute
         return ['between'];
     }
 
-    public function addToQuery($query, $tablename = '', $fieldaliasprefix = '', &$record = [], $level = 0, $mode = '')
+    public function addToQuery($query, $tablename = '', $fieldaliasprefix = '', &$record, $level = 0, $mode = '')
     {
         if ($mode == 'add' || $mode == 'update') {
             if ($this->value2db($record) == null) {
@@ -1521,9 +1444,9 @@ class DateAttribute extends Attribute
 
             //analyze the formate and make a regular expression
             $replaces = [];
-            $replaces[$dayBegin] = array('[0-9]{' . $dayLength . '}', $dayLength);
-            $replaces[$monthBegin] = array('[0-9]{' . $monthLength . '}', $monthLength);
-            $replaces[$yearBegin] = array('[0-9]{' . $yearLength . '}', $yearLength);
+            $replaces[$dayBegin] = array('[0-9]{'.$dayLength.'}', $dayLength);
+            $replaces[$monthBegin] = array('[0-9]{'.$monthLength.'}', $monthLength);
+            $replaces[$yearBegin] = array('[0-9]{'.$yearLength.'}', $yearLength);
 
             ksort($replaces);
 
@@ -1534,7 +1457,7 @@ class DateAttribute extends Attribute
                 $length = $replace[1];
                 $newbegin = $begin + $marge;
 
-                $regexpr = substr($regexpr, 0, $newbegin) . $newpart . substr($regexpr, $newbegin + $length);
+                $regexpr = substr($regexpr, 0, $newbegin).$newpart.substr($regexpr, $newbegin + $length);
 
                 $marge = strlen($regexpr) - strlen($format);
             }
@@ -1547,7 +1470,7 @@ class DateAttribute extends Attribute
             //also try to replace - by "/","." or "\""
             foreach ($valueSeparators as $valueSeparator) {
                 $expr = str_replace(' ', $valueSeparator, $regexpr);
-                if (preg_match('/' . addcslashes($expr, '/') . '/', $stringvalue)) {
+                if (preg_match('/'.addcslashes($expr, '/').'/', $stringvalue)) {
                     $day = substr($stringvalue, $dayBegin, $dayLength);
                     $month = substr($stringvalue, $monthBegin, $monthLength);
                     $year = substr($stringvalue, $yearBegin, $yearLength);
@@ -1558,7 +1481,7 @@ class DateAttribute extends Attribute
                         $month -= $day;
                     }
                     if (strlen($year) == 2) {
-                        $year = '20' . $year;
+                        $year = '20'.$year;
                     }
 
                     return array('day' => $day, 'month' => $month, 'year' => $year);
@@ -1663,16 +1586,5 @@ class DateAttribute extends Attribute
         }
 
         return $month == 2 ? ($year % 4 ? 28 : ($year % 100 ? 29 : ($year % 400 ? 28 : 29))) : (($month - 1) % 7 % 2 ? 30 : 31);
-    }
-
-    /**
-     * Removes all format chars without specific widget to render from str format and returns the number of remaining chars.
-     *
-     * @param string $strFormat
-     * @return int
-     */
-    private function getNumWidgetToRender(string $strFormat): int
-    {
-        return strlen(trim(str_replace('l', '', str_replace('D', '', $strFormat))));
     }
 }

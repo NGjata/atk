@@ -6,7 +6,7 @@ use Sintattica\Atk\Core\Tools;
 use Sintattica\Atk\Db\Query;
 
 /**
- * @deprecated use MultiListAttribute instead
+ * DEPRECATED
  *
  * Class MultiSelectListAttribute
  */
@@ -31,7 +31,7 @@ class MultiSelectListAttribute extends ListAttribute
      * @param $valueArray $value Array with values. If you don't use this parameter,
      *                    values are assumed to be the same as the options.
      */
-    public function __construct($name, $flags, $optionArray, $valueArray = null)
+    public function __construct($name, $flags = 0, $optionArray, $valueArray = null)
     {
         parent::__construct($name, $flags, $optionArray, $valueArray);
 
@@ -62,7 +62,7 @@ class MultiSelectListAttribute extends ListAttribute
             $values = $this->getValues();
             for ($i = 0; $i < Tools::count($values); ++$i) {
                 if (in_array($values[$i], $record[$this->fieldName()])) {
-                    $result .= '<input type="hidden" name="' . $this->getHtmlName($fieldprefix) . '[]" value="' . $values[$i] . '">';
+                    $result .= '<input type="hidden" name="'.$this->getHtmlName($fieldprefix).'[]" value="'.$values[$i].'">';
                 }
             }
         } else {
@@ -73,29 +73,29 @@ class MultiSelectListAttribute extends ListAttribute
     }
 
 
-    public function value2db(array $record)
+    public function value2db(array $rec)
     {
-        if (is_array($record[$this->fieldName()]) && Tools::count($record[$this->fieldName()]) >= 1) {
-            return $this->escapeSQL(implode($this->m_fieldSeparator, $record[$this->fieldName()]));
+        if (is_array($rec[$this->fieldName()]) && Tools::count($rec[$this->fieldName()]) >= 1) {
+            return $this->escapeSQL(implode($this->m_fieldSeparator, $rec[$this->fieldName()]));
+        } else {
+            return '';
         }
-
-        return '';
     }
 
     /**
      * Converts a database value to an internal value.
      *
-     * @param array $record The database record that holds this attribute's value
+     * @param array $rec The database record that holds this attribute's value
      *
      * @return mixed The internal value
      */
-    public function db2value($record)
+    public function db2value($rec)
     {
-        if (isset($record[$this->fieldName()]) && $record[$this->fieldName()] !== '') {
-            return explode($this->m_fieldSeparator, $record[$this->fieldName()]);
+        if (isset($rec[$this->fieldName()]) && $rec[$this->fieldName()] !== '') {
+            return explode($this->m_fieldSeparator, $rec[$this->fieldName()]);
+        } else {
+            return [];
         }
-
-        return [];
     }
 
     /**
@@ -119,7 +119,7 @@ class MultiSelectListAttribute extends ListAttribute
     /**
      * Returns a displayable string for this value, to be used in HTML pages.
      *
-     * @param array<string, mixed> $record The record that holds the value for this attribute
+     * @param array $record The record that holds the value for this attribute
      * @param string $mode The display mode ("view" for viewpages, or "list"
      *                       for displaying in recordlists, "edit" for
      *                       displaying in editscreens, "add" for displaying in
@@ -128,15 +128,15 @@ class MultiSelectListAttribute extends ListAttribute
      *
      * @return string HTML String
      */
-    public function display(array $record, string $mode): string
+    public function display($record, $mode)
     {
         $values = $record[$this->fieldName()];
         $res = [];
         for ($i = 0; $i < Tools::count($values); ++$i) {
-            $res[] = $this->translateValue($values[$i], $record);
+            $res[] = $this->_translateValue($values[$i], $record);
         }
 
-        return $res ? '<span class="badge-sm badge-pill d-inline-block badge-secondary m-1 text-nowrap">' . implode('</span><span class="badge-sm d-inline-block badge-pill badge-secondary m-1 text-nowrap">', $res) . "</span>" : "";
+        return $res ? '<span class="badge-sm badge-pill d-inline-block badge-secondary m-1 text-nowrap">' . implode('</span><span class="badge-sm d-inline-block badge-pill badge-secondary m-1 text-nowrap">', $res) . "</span>": "";
     }
 
     /**
@@ -166,45 +166,41 @@ class MultiSelectListAttribute extends ListAttribute
 
         $data = '';
         foreach ($selectOptions as $k => $v) {
-            $data .= ' data-' . $k . '="' . htmlspecialchars($v) . '"';
+            $data .= ' data-'.$k.'="'.htmlspecialchars($v).'"';
         }
 
-        if ($this->getCssStyle($type, 'width') === null && $this->getCssStyle($type, 'min-width') === null) {
+        if($this->getCssStyle($type, 'width') === null && $this->getCssStyle($type, 'min-width') === null) {
             $this->setCssStyle($type, 'min-width', '220px');
         }
 
         $style = $styles = '';
-        foreach ($this->getCssStyles('edit') as $k => $v) {
+        foreach($this->getCssStyles('edit') as $k => $v) {
             $style .= "$k:$v;";
         }
-        if ($style != '') {
-            $styles = ' style="' . $style . '"';
+        if($style != ''){
+            $styles = ' style="'.$style.'"';
         }
 
         $onchange = '';
         if (Tools::count($this->m_onchangecode)) {
-            $onchange = ' onChange="' . $this->getHtmlId($fieldprefix) . '_onChange(this)"';
+            $onchange = ' onChange="'.$this->getHtmlId($fieldprefix).'_onChange(this)"';
             $this->_renderChangeHandler($fieldprefix);
         }
 
-        $result = '<select multiple id="' . $id . '" name="' . $name . '[]" ' . $this->getCSSClassAttribute() . '" ' . $onchange . $data . $styles . '>';
+        $result = '<select multiple id="'.$id.'" name="'.$name.'[]" '.$this->getCSSClassAttribute().'" '.$onchange.$data.$styles.'>';
 
         $values = $this->getValues();
-        if (isset($record[$this->fieldName()])) {
-            if (!is_array($record[$this->fieldName()])) {
-                $recordvalue = $this->db2value($record);
-            } else {
-                $recordvalue = $record[$this->fieldName()];
-            }
+        if (!is_array($record[$this->fieldName()])) {
+            $recordvalue = $this->db2value($record);
         } else {
-            $recordvalue = null;
+            $recordvalue = $record[$this->fieldName()];
         }
 
         for ($i = 0; $i < Tools::count($values); ++$i) {
             // If the current value is selected or occurs in the record
             $sel = (Tools::atk_in_array($values[$i], $recordvalue)) ? 'selected' : '';
 
-            $result .= '<option value="' . $values[$i] . '" ' . $sel . '>' . $this->translateValue($values[$i], $record);
+            $result .= '<option value="'.$values[$i].'" '.$sel.'>'.$this->_translateValue($values[$i], $record);
         }
 
         $result .= '</select>';
@@ -221,12 +217,12 @@ class MultiSelectListAttribute extends ListAttribute
             $searchcondition = [];
 
             if (in_array('__NONE__', $value)) {
-                unset($value[array_search('__NONE__', $value)]);
-                $searchcondition[] = $query->nullCondition($table . '.' . $this->fieldName(), true);
+                 unset($value[array_search('__NONE__', $value)]);
+                $searchcondition[] = $query->nullCondition($table.'.'.$this->fieldName(), true);
             }
 
             foreach ($value as $str) {
-                $searchcondition[] = $query->substringCondition($table . '.' . $this->fieldName(), $this->escapeSQL($str));
+                $searchcondition[] = $query->substringCondition($table.'.'.$this->fieldName(), $this->escapeSQL($str));
             }
             $searchcondition = implode(' OR ', $searchcondition);
         }
@@ -270,7 +266,7 @@ class MultiSelectListAttribute extends ListAttribute
     public function _addLinks($fieldprefix)
     {
         if (Tools::count($this->m_values) > 4 && !Tools::hasFlag($this->m_flags, self::AF_NO_TOGGLELINKS)) {
-            return '<div align="left">[<a href="javascript:void(0)" onclick="ATK.ProfileAttribute.profile_checkAll(\'' . $fieldprefix . $this->fieldName() . '\'); return false;">' . Tools::atktext('check_all') . '</a> <a href="javascript:void(0)" onclick="ATK.ProfileAttribute.profile_checkNone(\'' . $fieldprefix . $this->fieldName() . '\'); return false;">' . Tools::atktext('check_none') . '</a> <a href="javascript:void(0)" onclick="ATK.ProfileAttribute.profile_checkInvert(\'' . $fieldprefix . $this->fieldName() . '\'); return false;">' . Tools::atktext('invert_selection') . '</a>]</div>';
+            return '<div align="left">[<a href="javascript:void(0)" onclick="ATK.ProfileAttribute.profile_checkAll(\''.$fieldprefix.$this->fieldName().'\'); return false;">'.Tools::atktext('check_all').'</a> <a href="javascript:void(0)" onclick="ATK.ProfileAttribute.profile_checkNone(\''.$fieldprefix.$this->fieldName().'\'); return false;">'.Tools::atktext('check_none').'</a> <a href="javascript:void(0)" onclick="ATK.ProfileAttribute.profile_checkInvert(\''.$fieldprefix.$this->fieldName().'\'); return false;">'.Tools::atktext('invert_selection').'</a>]</div>';
         }
 
         return '';

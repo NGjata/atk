@@ -90,7 +90,7 @@ class AddHandler extends ActionHandler
             return $result;
         }
 
-        return '';
+        return;
     }
 
     /**
@@ -247,14 +247,11 @@ class AddHandler extends ActionHandler
         $forceList = [];
         $filterList = (isset($node->m_postvars['atkfilter'])) ? Tools::decodeKeyValueSet($node->m_postvars['atkfilter']) : [];
         foreach ($filterList as $field => $value) {
-            $parts = explode('.', $field);
-            $table = $parts[0];
-            $column = $parts[1] ?? null;
-
-            if ($column === null) {
+            list($table, $column) = explode('.', $field);
+            if ($column == null) {
                 $forceList[$table] = $value;
             } else {
-                if ($table === $this->getNode()->getTable()) {
+                if ($table == $this->getNode()->getTable()) {
                     $forceList[$column] = $value;
                 } else {
                     $forceList[$table][$column] = $value;

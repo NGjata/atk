@@ -23,7 +23,7 @@ class ParserAttribute extends Attribute
      * @param int $flags Flags for this attribute
      * @param string $text text field
      */
-    public function __construct($name, $flags, $text)
+    public function __construct($name, $flags = 0, $text)
     {
         $flags = $flags | self::AF_HIDE_SEARCH | self::AF_NO_SORT;
         $this->m_text = $text;
@@ -54,12 +54,12 @@ class ParserAttribute extends Attribute
     /**
      * Parses a record.
      *
-     * @param array<string, mixed> $record Array with fields
+     * @param array $record Array with fields
      * @param string $mode
      *
      * @return string Parsed string
      */
-    public function display(array $record, string $mode): string
+    public function display($record, $mode)
     {
         $stringparser = new StringParser($this->m_text);
 
@@ -80,7 +80,7 @@ class ParserAttribute extends Attribute
         return true;
     }
 
-    public function addToQuery($query, $tablename = '', $fieldaliasprefix = '', &$record = [], $level = 0, $mode = '')
+    public function addToQuery($query, $tablename = '', $fieldaliasprefix = '', &$record, $level = 0, $mode = '')
     {
     }
 

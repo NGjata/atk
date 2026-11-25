@@ -31,7 +31,7 @@ class LiveTextPreviewAttribute extends DummyAttribute
      * @param string $masterAttribute The attribute that should be previewed.
      *
      */
-    public function __construct($name, $flags, $masterAttribute)
+    public function __construct($name, $flags = 0, $masterAttribute)
     {
         parent::__construct($name, $flags, '');
         $this->m_masterattribute = $masterAttribute;

@@ -155,7 +155,7 @@ class SspiAuth extends DbAuth
         return $recs;
     }
 
-    public function getUser(&$user)
+    public function getUser($user)
     {
         $groupfield = Config::getGlobal('auth_groupfield');
         $groupparentfield = Config::getGlobal('auth_groupparentfield');

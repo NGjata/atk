@@ -99,42 +99,36 @@ class DataGridList extends DataGridComponent
             if ($orientation == 'left' || $orientation == 'both') {
                 // empty cell above search button, if zero rows
                 // if $orientation is empty, no search button is shown, so no empty cell is needed
-                $headercols[] = ['content' => '&nbsp;'];
+                $headercols[] = array('content' => '&nbsp;');
             }
         }
 
         if (!$edit && ($hasMRA || $grid->hasFlag(DataGrid::MULTI_RECORD_PRIORITY_ACTIONS))) {
-            $headercols[] = ['content' => '']; // Empty leader on top of mra action list.
+            $headercols[] = array('content' => ''); // Empty leader on top of mra action list.
         }
 
         if (($orientation == 'left' || $orientation == 'both') && ($hasActionCol && Tools::count($list['rows']) > 0)) {
-            $headercols[] = ['content' => ''];
+            $headercols[] = array('content' => '');
         }
 
         foreach (array_values($list['heading']) as $head) {
             if (!$grid->hasFlag(DataGrid::SORT) || empty($head['order'])) {
-                $newHeaderItem = ['content' => $head['title']];
+                $headercols[] = array('content' => $head['title']);
             } else {
-                $call = $grid->getUpdateCall(['atkorderby' => $head['order'], 'atkstartat' => 0]);
-                $newHeaderItem = ['content' => $this->_getHeadingAnchorHtml($call, $head['title'])];
+                $call = $grid->getUpdateCall(array('atkorderby' => $head['order'], 'atkstartat' => 0));
+                $headercols[] = array('content' => $this->_getHeadingAnchorHtml($call, $head['title']));
             }
-
-            if (isset($head['css_class'])) {
-                $newHeaderItem['css_class'] = $head['css_class'];
-            }
-
-            $headercols[] = $newHeaderItem;
         }
 
         if (($orientation == 'right' || $orientation == 'both') && ($hasActionCol && Tools::count($list['rows']) > 0)) {
-            $headercols[] = ['content' => ''];
+            $headercols[] = array('content' => '');
         }
 
         if ($hasActionCol && Tools::count($list['rows']) == 0) {
             if ($orientation == 'right' || $orientation == 'both') {
                 // empty cell above search button, if zero rows
                 // if $orientation is empty, no search button is shown, so no empty cell is needed
-                $headercols[] = ['content' => '&nbsp;'];
+                $headercols[] = array('content' => '&nbsp;');
             }
         }
 
@@ -145,25 +139,25 @@ class DataGridList extends DataGridComponent
         $sortstart = '';
         $sortend = '';
         if ($grid->hasFlag(DataGrid::EXTENDED_SORT)) {
-            $call = htmlentities($grid->getUpdateCall(['atkstartat' => 0], [], 'ATK.DataGrid.extractExtendedSortOverrides'));
+            $call = htmlentities($grid->getUpdateCall(array('atkstartat' => 0), [], 'ATK.DataGrid.extractExtendedSortOverrides'));
             $button = '<input type="button" class="btn btn-sm" value="' . Tools::atktext('sort') . '" onclick="' . $call . '">';
 
             if (!$edit && ($hasMRA || $grid->hasFlag(DataGrid::MULTI_RECORD_PRIORITY_ACTIONS))) {
-                $sortcols[] = ['content' => '']; // Empty leader on top of mra action list.
+                $sortcols[] = array('content' => ''); // Empty leader on top of mra action list.
             }
 
             if ($orientation == 'left' || $orientation == 'both') {
-                $sortcols[] = ['content' => $button];
+                $sortcols[] = array('content' => $button);
             }
 
             foreach (array_keys($list['heading']) as $key) {
                 if (isset($list['sort'][$key])) {
-                    $sortcols[] = ['content' => $list['sort'][$key]];
+                    $sortcols[] = array('content' => $list['sort'][$key]);
                 }
             }
 
             if ($orientation == 'right' || $orientation == 'both') {
-                $sortcols[] = ['content' => $button];
+                $sortcols[] = array('content' => $button);
             }
         }
 
@@ -223,7 +217,7 @@ class DataGridList extends DataGridComponent
             $page->register_script(Config::getGlobal('assets_url') . 'javascript/formselect.js');
 
             if ($hasMRA) {
-                $liststart .= '<script type="text/javascript">let ' . $listName . ' = {};</script>';
+                $liststart .= '<script language="javascript" type="text/javascript">var ' . $listName . ' = {};</script>';
             }
         }
 
@@ -242,7 +236,7 @@ class DataGridList extends DataGridComponent
 
             $bgn = $bgh = Node::DEFAULT_RECORDLIST_BG_COLOR;
 
-            if ($this->getNode()->getRowColorMode() === Node::ROW_COLOR_MODE_DEFAULT) {
+            if($this->getNode()->getRowColorMode() === Node::ROW_COLOR_MODE_DEFAULT){
                 $bgn = $bgh = $grid->getNode()->recordHexColor($recordset[$i], $i);
             }
 
@@ -297,7 +291,7 @@ class DataGridList extends DataGridComponent
 
                     $record['cols'][] = array(
                         'content' => $inputHTML . '
-              <script type="text/javascript">' . $listName . '["' . htmlentities($list['rows'][$i]['selector']) . '"] =
+              <script language="javascript"  type="text/javascript">' . $listName . '["' . htmlentities($list['rows'][$i]['selector']) . '"] =
                   new Array("' . implode($list['rows'][$i]['mra'], '","') . '");
               </script>',
                         'type' => 'mra',
@@ -310,12 +304,10 @@ class DataGridList extends DataGridComponent
                 $liststart .= '<input type="hidden" name="atkdatagriddata_AE_' . $i . '_AE_atkprimkey" value="' . htmlentities($list['rows'][$i]['selector']) . '">';
             }
 
-            $str_actions = '<div class="actions dt-buttons btn-group">';
+            $str_actions = '<span class="actions">';
             $actionloader .= "\nATK.RL.a['" . $listName . "'][" . $i . '] = {};';
             $icons = Config::getGlobal('recordlist_icons');
 
-            $buttonIndex = 0;
-            $buttonsCount = count($list['rows'][$i]['actions']);
             foreach ($list['rows'][$i]['actions'] as $name => $url) {
                 if (substr($url, 0, 11) == 'javascript:') {
                     $call = substr($url, 11);
@@ -326,16 +318,16 @@ class DataGridList extends DataGridComponent
 
                 $module = $grid->getNode()->m_module;
                 $nodetype = $grid->getNode()->m_type;
-                $actionKeys = [
+                $actionKeys = array(
                     'action_' . $module . '_' . $nodetype . '_' . $name,
                     'action_' . $nodetype . '_' . $name,
                     'action_' . $name,
-                    $name
-                ];
+                    $name,
+                );
 
                 $link = htmlentities($this->text($actionKeys));
 
-                if ($icons) {
+                if ($icons == true) {
                     $normalizedName = strtolower(str_replace('-', '_', $name));
                     $icon = Config::get($module, 'icon_' . $nodetype . '_' . $normalizedName, false);
                     if (!$icon) {
@@ -349,30 +341,14 @@ class DataGridList extends DataGridComponent
                     }
                 }
 
-                $confirmText = 'false';
+                $confirmtext = 'false';
                 if (Config::getGlobal('recordlist_javascript_delete') && $name == 'delete') {
-                    $confirmText = "'" . $grid->getNode()->confirmActionText($name) . "'";
+                    $confirmtext = "'" . $grid->getNode()->confirmActionText($name) . "'";
                 }
-
-                $dropDownStartIndex =  $this->getNode()->getRecordListDropdownStartIndex() ?? Config::getGlobal('recordList_dropdown_start_index');
-                $showDropdown = $dropDownStartIndex > 0;
-
-                if ($showDropdown && $buttonIndex === $dropDownStartIndex) {
-                    $str_actions .= '<div class="btn-group" role="group">
-                                        <button id="btnGroupDrop' . $i . '" type="button" style="min-width: 29px;" class="btn btn-sm btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false"></button>
-                                        <ul class="dropdown-menu" aria-labelledby="btnGroupDrop' . $i . '">';
-                }
-
-                $str_actions .= $this->_renderRecordActionLink($url, $link, $listName, $i, $name, $confirmText, $showDropdown && $buttonIndex >= $dropDownStartIndex);
-
-                if ($showDropdown && $buttonsCount >= $dropDownStartIndex && $buttonIndex === $buttonsCount - 1) {
-                    $str_actions .= '</ul></div>';
-                }
-
-                $buttonIndex++;
+                $str_actions .= $this->_renderRecordActionLink($url, $link, $listName, $i, $name, $confirmtext);
             }
 
-            $str_actions .= '</div>';
+            $str_actions .= '</span>';
             /* actions (left) */
             if ($orientation == 'left' || $orientation == 'both') {
                 if (!empty($list['rows'][$i]['actions'])) {
@@ -519,9 +495,7 @@ class DataGridList extends DataGridComponent
             $mra = '<input type="button" class="btn btn-sm btn-primary" value="' . Tools::atktext('save') . '" onclick="' . htmlentities($this->getGrid()->getSaveCall()) . '">';
         }
 
-        $recordListDropDownStartIndex = $this->getNode()->getRecordListDropdownStartIndex() ?? Config::getGlobal('recordList_dropdown_start_index') ?? 3;
-
-        return [
+        $recordListData = array(
             'rows' => $records,
             'header' => $headercols,
             'search' => $searchcols,
@@ -537,8 +511,9 @@ class DataGridList extends DataGridComponent
             'mra' => $mra,
             'mraposition' => Config::getGlobal('mra_position'),
             'editing' => $this->getGrid()->isEditing(),
-            'recordListTdFirstWidth' => $recordListDropDownStartIndex * 35 // px
-        ];
+        );
+
+        return $recordListData;
     }
 
     /**
@@ -560,36 +535,15 @@ class DataGridList extends DataGridComponent
      * @param string $url The URL for the record action
      * @param string $link HTML for displaying the link (between the <a></a>)
      * @param string $listName The name of the recordlist
-     * @param int $i The row index to render the action for
+     * @param string $i The row index to render the action for
      * @param string $name The action name
-     * @param bool|string $confirmText The text for the confirmation if set
-     * @param bool $asDropdown Show link as a dropdown item or a simple link
+     * @param bool|string $confirmtext The text for the confirmation if set
+     *
      * @return string the html link
      */
-    protected function _renderRecordActionLink(string $url, string $link, string $listName, int $i, string $name, string $confirmText = 'false', bool $asDropdown = false): string
+    protected function _renderRecordActionLink($url, $link, $listName, $i, $name, $confirmtext = 'false')
     {
-
-        $showLabelsOnDropdown = Config::getGlobal('recordList_show_dropdown_labels');
-        $result = "";
-
-        $shownLabel = "";
-        if ($asDropdown) {
-            $result .= "<li>";
-
-            if($showLabelsOnDropdown) {
-                $translatedName = $this->text($name);
-                $shownLabel = '<span class="ml-1">' . $translatedName . '</span>';
-            }
-        }
-
-
-        $result .= '<a class="btn btn-sm ' . ($asDropdown ? 'dropdown-item' : 'btn-default') . '" type="button" href="' . "javascript:ATK.RL.rl_do('$listName',$i,'$name',$confirmText);" . '">' . $link . $shownLabel .'</a>';
-
-        if ($asDropdown) {
-            $result .= "</li>";
-        }
-
-        return $result;
+        return '<a href="' . "javascript:ATK.RL.rl_do('$listName',$i,'$name',$confirmtext);" . '" class="btn btn-sm btn-default">' . $link . '</a>';
     }
 
     /**
@@ -836,7 +790,6 @@ class DataGridList extends DataGridComponent
 
     /**
      * Add the list array header to the result list.
-     * @throws Exception
      */
     private function _addListArrayHeader(&$listArray, $prefix, $suppressList, $flags, $columnConfig)
     {
@@ -849,7 +802,7 @@ class DataGridList extends DataGridComponent
 
             $attr = $this->getNode()->getAttribute($column->attrName);
             if (!is_object($attr)) {
-                throw new Exception("Invalid attribute '$column->attrName' for node {$this->getNode()->atkNodeUri()}");
+                throw new Exception("Invalid attribute {$column->attrName} for node " . $this->getNode()->atkNodeUri());
             }
 
             $attr->addToListArrayHeader($this->getNode()->getAction(), $listArray, $prefix, $flags, $this->getGrid()->getPostvar('atksearch'), $columnConfig,
