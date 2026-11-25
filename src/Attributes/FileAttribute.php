@@ -695,6 +695,10 @@ class FileAttribute extends Attribute
                     $result = $postvars[$this->fieldName()];
                 } else {
                     $filename = (isset($postvars[$basename . '_orgfilename'])) ? $postvars[$basename . '_orgfilename'] : '';
+                    // the name comes from the request and is appended to the upload directory
+                    if (!is_string($filename) || preg_match('#(^|[\\\\/])\\.\\.([\\\\/]|$)|^[\\\\/]|\\x00#', $filename)) {
+                        $filename = '';
+                    }
 
                     if ($del == 'on') {
                         $filename = '';

@@ -81,7 +81,8 @@ class SessionManager
         if (isset($_REQUEST['atkprevlevel'])) {
             $this->atkprevlevel = trim($_REQUEST['atkprevlevel']);
         }
-        if (isset($_REQUEST['atkstackid'])) {
+        // the stack id is echoed into forms and urls: only accept a plain token
+        if (isset($_REQUEST['atkstackid']) && is_string($_REQUEST['atkstackid']) && preg_match('/^[A-Za-z0-9_.-]{1,64}$/', trim($_REQUEST['atkstackid']))) {
             $this->atkstackid = trim($_REQUEST['atkstackid']);
         }
 
@@ -89,7 +90,14 @@ class SessionManager
         $cookie_params = session_get_cookie_params();
         $cookiepath = Config::getGlobal('cookie_path');
         $cookiedomain = (Config::getGlobal('cookiedomain') != '') ? Config::getGlobal('cookiedomain') : null;
-        session_set_cookie_params($cookie_params['lifetime'], $cookiepath, $cookiedomain);
+        session_set_cookie_params([
+            'lifetime' => $cookie_params['lifetime'],
+            'path' => $cookiepath,
+            'domain' => (string) $cookiedomain,
+            'secure' => !empty($cookie_params['secure']) || (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
+            'httponly' => true,
+            'samesite' => !empty($cookie_params['samesite']) ? $cookie_params['samesite'] : 'Lax',
+        ]);
 
         // set cache expire (if function exists, or show upgrade hint if not)
         if (function_exists('session_cache_expire')) {
@@ -165,7 +173,14 @@ class SessionManager
         $cookie_params = session_get_cookie_params();
         $cookiepath = Config::getGlobal('cookie_path');
         $cookiedomain = (Config::getGlobal('cookiedomain') != '') ? Config::getGlobal('cookiedomain') : null;
-        session_set_cookie_params($cookie_params['lifetime'], $cookiepath, $cookiedomain);
+        session_set_cookie_params([
+            'lifetime' => $cookie_params['lifetime'],
+            'path' => $cookiepath,
+            'domain' => (string) $cookiedomain,
+            'secure' => !empty($cookie_params['secure']) || (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
+            'httponly' => true,
+            'samesite' => !empty($cookie_params['samesite']) ? $cookie_params['samesite'] : 'Lax',
+        ]);
     }
 
     /**
