@@ -4375,6 +4375,14 @@ class Node
         $alias = $this->atkNodeUri();
         $this->resolveNodeTypeAndAction($alias, $action);
 
+        // The record picker actions list a node's records without any privilege
+        // by default. When 'select_action_privilege' is set (e.g. to 'admin'),
+        // they require that privilege on the node instead.
+        $selectPrivilege = Config::getGlobal('select_action_privilege', '');
+        if ($selectPrivilege && in_array($action, ['select', 'multiselect'], true) && !$this->hasFlag(self::NF_NO_SECURITY)) {
+            return $secMgr->allowed($alias, $selectPrivilege);
+        }
+
         return $this->hasFlag(self::NF_NO_SECURITY) || in_array($action, $this->m_unsecuredActions) || $secMgr->allowed($alias,
                 $action) || (isset($this->m_securityImplied[$action]) && $secMgr->allowed($alias, $this->m_securityImplied[$action]));
     }
