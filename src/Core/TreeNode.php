@@ -175,7 +175,7 @@ class TreeNode extends Node
     {
         static $s_count = 1;
         global $g_maxlevel, $exp_index;
-        while (list($id, $objarr) = each($tree)) {
+        foreach ($tree as $id => $objarr) {
             $this->m_tree[$s_count]['level'] = $level + 1;
             // Store extra info in the record, so the recordActions override can make
             // use of some extra info to determine whether or not to show certain actions.

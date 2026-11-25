@@ -2777,7 +2777,7 @@ class Node
         $ui = $this->getUi();
 
         if (is_array($atkselector)) {
-            $atkselector_str = '((' . implode($atkselector, ') OR (') . '))';
+            $atkselector_str = '((' . implode(') OR (', $atkselector) . '))';
         } else {
             $atkselector_str = $atkselector;
         }

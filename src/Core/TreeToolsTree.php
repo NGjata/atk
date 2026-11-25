@@ -49,7 +49,7 @@ class TreeToolsTree
             $tree = $this->m_tree;
         }
         $res = '';
-        while (list($id, $objarr) = each($tree)) {
+        foreach ($tree as $id => $objarr) {
             $res .= '<tr><td>'.str_repeat('-', (2 * $level)).' '.$objarr->m_label.'</td></tr>';
             if (Tools::count($objarr->m_sub) > 0) {
                 $res .= $this->render($objarr->m_sub, $level + 1);

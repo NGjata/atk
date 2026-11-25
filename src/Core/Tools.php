@@ -746,7 +746,7 @@ class Tools
     {
         reset($set);
         $items = [];
-        while (list($key, $value) = each($set)) {
+        foreach ($set as $key => $value) {
             $items[] = $key . '=' . $value;
         }
 
